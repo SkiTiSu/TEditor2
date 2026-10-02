@@ -1,5 +1,7 @@
 # TEditor2
 
+[在线使用](https://teditor2.pages.dev) · [GitHub 仓库](https://github.com/SkiTiSu/TEditor2)
+
 TEditor 的纯浏览器版本，优先支持桌面 Chrome / Edge。文字、图片、图形、表格变量、条件组与批量 PNG 都在浏览器本地处理，无需业务后端。本仓库仅包含新版 Web 实现，不包含旧桌面项目源码，不再提供旧命令行调用。
 
 ## 开发与部署
