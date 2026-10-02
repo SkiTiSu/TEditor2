@@ -22,6 +22,53 @@ test.afterEach(async ({ page }) => {
   expect(errors.get(page), 'unexpected browser exceptions').toEqual([]);
 });
 
+test('image opacity multiplies source alpha in preview and export and survives saving', async ({
+  page,
+}) => {
+  await fresh(page, 100, 100);
+  await page.getByRole('button', { name: '添加图片', exact: true }).click();
+  const encoded = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 20;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ff000080';
+    ctx.fillRect(0, 0, 20, 20);
+    return canvas.toDataURL().split(',')[1];
+  });
+  await page.locator('input[type=file][accept="image/*,.tif,.tiff"]').setInputFiles({
+    name: 'alpha.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(encoded, 'base64'),
+  });
+  await page.getByLabel('X', { exact: true }).fill('0');
+  await page.getByLabel('Y', { exact: true }).fill('0');
+  const opacity = page.getByLabel('图片不透明度 (%)', { exact: true });
+  await expect(opacity).toHaveValue('100');
+  await expect.poll(() => pixel(page, 5, 5)).toEqual([255, 0, 0, 128]);
+  await opacity.fill('50');
+  await expect.poll(() => pixel(page, 5, 5)).toEqual([255, 0, 0, 64]);
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button', { name: '导出当前', exact: true }).click();
+  expect((await pngPixels(page, await downloadBytes(await downloaded), [[5, 5]])).pixels).toEqual([
+    [255, 0, 0, 64],
+  ]);
+  const saved = await saveDocument(page);
+  expect(saved.Layers[0].Data).toMatchObject({ Opacity: 0.5 });
+  await fresh(page, 100, 100);
+  await page.locator('input[type=file][accept=".ted,.json"]').setInputFiles({
+    name: 'opacity.ted',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(saved)),
+  });
+  await page.locator('.layer-row').first().click();
+  await expect(opacity).toHaveValue('50');
+  await expect.poll(() => pixel(page, 5, 5)).toEqual([255, 0, 0, 64]);
+  await page.getByLabel('图片不透明度滑块', { exact: true }).fill('0');
+  await expect.poll(() => pixel(page, 5, 5)).toEqual([0, 0, 0, 0]);
+  await page.getByRole('button', { name: '撤销', exact: true }).click();
+  await expect(opacity).toHaveValue('50');
+});
+
 test('color picker supports RGB and RGBA while preserving alpha and transparent RGB', async ({
   page,
 }) => {

@@ -198,6 +198,7 @@ export function createLayer(key: LayerKey): LayerModel {
   else if (key === 'Image')
     Data = {
       ImageUrl: '',
+      Opacity: 1,
       VariableEnable: false,
       VariableImageUrl: '',
       EmbedImage: false,
@@ -292,7 +293,12 @@ function normalizeLayer(input: unknown, legacy: boolean, index: number): LayerMo
       target[field] = enumValue(data[field], { center: 0, outside: 1, inside: 2 }, 1, '描边位置');
     else if (typeof fallback === 'boolean') target[field] = boolean(data[field], fallback);
     else if (typeof fallback === 'number') {
-      const max = field === 'ShadowOpacity' ? 1 : field === 'FontSize' ? 4096 : MAX_DIMENSION;
+      const max =
+        field === 'ShadowOpacity' || field === 'Opacity'
+          ? 1
+          : field === 'FontSize'
+            ? 4096
+            : MAX_DIMENSION;
       const min = field === 'FontSize' ? 1 : field === 'ShadowDirection' ? -3600 : 0;
       target[field] = number(data[field], fallback, `图层 ${index + 1} 的 ${field}`, min, max);
       if (field === 'TextSpaceNumber') target[field] = Math.floor(target[field] as number);

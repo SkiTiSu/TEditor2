@@ -26,6 +26,7 @@ export interface TextData {
   VariableTemplate: string;
 }
 export interface ImageData {
+  Opacity: number;
   ImageUrl: string;
   VariableEnable: boolean;
   VariableImageUrl: string;

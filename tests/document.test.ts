@@ -13,6 +13,23 @@ import {
 } from '../src/core/document';
 import type { ImageData, ShapeData, TextData } from '../src/core/types';
 
+it('defaults missing image opacity to opaque and validates persisted opacity', () => {
+  const doc = createDocument();
+  doc.Layers.push(createLayer('Image'));
+  const data = doc.Layers[0].Data as ImageData;
+  expect(data.Opacity).toBe(1);
+  delete (data as Partial<ImageData>).Opacity;
+  expect((normalizeDocument(doc).document.Layers[0].Data as ImageData).Opacity).toBe(1);
+  data.Opacity = 0;
+  expect((parseDocument(serializeDocument(doc)).document.Layers[0].Data as ImageData).Opacity).toBe(
+    0,
+  );
+  for (const value of [-0.1, 1.1, NaN]) {
+    data.Opacity = value;
+    expect(() => normalizeDocument(doc)).toThrow('Opacity');
+  }
+});
+
 function legacyFixture() {
   return {
     VersionCode: 0,

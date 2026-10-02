@@ -542,6 +542,8 @@ export async function renderComposite(
       const isolated = surface(state, 'layer', width, height);
       if (layer.Key === 'Text') drawText(isolated.ctx, layer, state, width, height);
       else if (layer.Key === 'Image') {
+        isolated.ctx.save();
+        isolated.ctx.globalAlpha = clamp((layer.Data as ImageData).Opacity ?? 1, 0, 1);
         const image = images.get(original);
         if (image) {
           try {
@@ -559,6 +561,7 @@ export async function renderComposite(
             drawMissingImage(isolated.ctx, layer);
           }
         } else drawMissingImage(isolated.ctx, layer);
+        isolated.ctx.restore();
       } else drawShape(isolated.ctx, layer);
       if (layer.ClippingMaskEnable && hasBase && base) {
         isolated.ctx.globalCompositeOperation = 'destination-in';

@@ -376,6 +376,21 @@ export function Properties({
           return (
             <section>
               <div className="section-label">图片来源</div>
+              <NumberField
+                label="图片不透明度 (%)"
+                value={Math.round((i.Opacity ?? 1) * 100)}
+                min={0}
+                max={100}
+                onChange={(v) => onData({ Opacity: v / 100 })}
+              />
+              <input
+                aria-label="图片不透明度滑块"
+                type="range"
+                min="0"
+                max="100"
+                value={Math.round((i.Opacity ?? 1) * 100)}
+                onChange={(e) => onData({ Opacity: Number(e.target.value) / 100 })}
+              />
               <button className="secondary full" onClick={onImage}>
                 选择本地图片
               </button>
