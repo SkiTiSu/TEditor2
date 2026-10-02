@@ -61,6 +61,7 @@ import { renderDocument } from './core/render';
 import { AssetStore, decodeTextFile, downloadBlob, fileDataUrl } from './core/assets';
 import { readDraft, readAssets, saveDraft, saveAssets } from './core/storage';
 import { History } from './core/history';
+import { DEFAULT_FONTS, cacheLocalFonts, fontFamilies, initialFonts } from './core/fonts';
 import { ArchiveStorage } from './core/archive';
 import { createDemo } from './core/demo';
 import { canvasBlob, runExport } from './core/export';
@@ -114,15 +115,43 @@ export default function App() {
     [page, setPage] = useState(0),
     [sort, setSort] = useState<{ column: string; direction: number } | null>(null),
     [assetRevision, setAssetRevision] = useState(0),
-    [fonts, setFonts] = useState([
-      'sans-serif',
-      'Arial',
-      'Microsoft YaHei',
-      'PingFang SC',
-      'SimSun',
-      'Georgia',
-      'monospace',
-    ]);
+    [fonts, setFonts] = useState(initialFonts);
+  const importedFontNames = useRef(new Set<string>());
+  const fontReadRevision = useRef(0);
+  const [fontStatus, setFontStatus] = useState('正在检查本机字体权限…');
+  useEffect(() => {
+    let active = true;
+    let revision = fontReadRevision.current;
+    (async () => {
+      try {
+        const query = (
+          window as unknown as { queryLocalFonts?: () => Promise<{ family: string }[]> }
+        ).queryLocalFonts;
+        if (!query || !navigator.permissions) {
+          if (active) setFontStatus('可手动读取本机字体或导入字体文件。');
+          return;
+        }
+        const permission = await navigator.permissions.query({
+          name: 'local-fonts' as PermissionName,
+        });
+        if (!active || revision !== fontReadRevision.current) return;
+        if (permission.state !== 'granted') {
+          setFontStatus('点击“读取本机字体”授权后，每次打开页面都会自动更新。');
+          return;
+        }
+        revision = ++fontReadRevision.current;
+        setFontStatus('正在更新本机字体列表…');
+        const list = await query.call(window);
+        if (active && revision === fontReadRevision.current) acceptLocalFonts(list);
+      } catch {
+        if (active && revision === fontReadRevision.current)
+          setFontStatus('自动读取暂不可用，已保留上次列表；可点击“读取本机字体”更新。');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
   const [historyRevision, setHistoryRevision] = useState(0),
     [showHistory, setShowHistory] = useState(false),
     [saving, setSaving] = useState('已在本地恢复'),
@@ -538,6 +567,7 @@ export default function App() {
     const font = new FontFace(name, await file.arrayBuffer());
     await font.load();
     document.fonts.add(font);
+    importedFontNames.current.add(name);
     setFonts((f) => [...new Set([...f, name])]);
     if (persist) {
       assets.current.add([file]);
@@ -545,7 +575,19 @@ export default function App() {
       notice('字体已导入：' + name);
     }
   }
+  function acceptLocalFonts(list: { family: string }[]) {
+    const families = fontFamilies(list.map((font) => font.family));
+    if (!families.length) {
+      setFontStatus('未读取到本机字体，请检查字体访问权限后重试。');
+      return 0;
+    }
+    cacheLocalFonts(families);
+    setFonts(fontFamilies([...DEFAULT_FONTS, ...importedFontNames.current, ...families]));
+    setFontStatus(`已更新 ${families.length} 个本机字体家族；安装新字体后可重新读取。`);
+    return families.length;
+  }
   async function localFonts() {
+    const revision = ++fontReadRevision.current;
     try {
       const query = (window as unknown as { queryLocalFonts?: () => Promise<{ family: string }[]> })
         .queryLocalFonts;
@@ -554,10 +596,18 @@ export default function App() {
         fontInput.current?.click();
         return;
       }
+      setFontStatus('正在更新本机字体列表…');
       const list = await query.call(window);
-      setFonts((f) => [...new Set([...f, ...list.map((x) => x.family)])].sort());
-      notice(`已读取 ${list.length} 种本机字体`);
+      if (revision !== fontReadRevision.current) return;
+      const count = acceptLocalFonts(list);
+      notice(
+        count
+          ? `已读取 ${count} 个本机字体家族（${list.length} 个字形），展开字体列表即可选择`
+          : '未读取到本机字体，请检查字体访问权限后重试。',
+      );
     } catch (e) {
+      if (revision !== fontReadRevision.current) return;
+      setFontStatus('读取失败，已保留现有列表；请检查权限后重试。');
       notice('字体访问：' + errorText(e));
     }
   }
@@ -1366,7 +1416,9 @@ export default function App() {
                 onChange={patchLayer}
                 onData={patchData}
                 fonts={fonts}
+                fontStatus={fontStatus}
                 onFont={() => fontInput.current?.click()}
+                onReadLocalFonts={localFonts}
                 onImage={() => imageInput.current?.click()}
               />
             ) : (
@@ -1416,6 +1468,7 @@ export default function App() {
                   <button className="secondary full" onClick={() => fontInput.current?.click()}>
                     导入字体文件
                   </button>
+                  <p className="hint">{fontStatus}</p>
                   <p className="hint">
                     字体、图片和数据在本机处理。旧模板的图片路径可通过关联素材目录恢复。
                   </p>

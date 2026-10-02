@@ -888,6 +888,42 @@ kbd {
   padding: 4px;
   gap: 8px;
 }
+.font-picker > label {
+  font-size: 10px;
+  color: #8898af;
+}
+.font-picker-current {
+  display: flex;
+  gap: 4px;
+}
+.font-picker-current > button {
+  flex-shrink: 0;
+  width: 30px;
+  border: 1px solid #363d4c;
+  background: #191d26;
+}
+.font-picker-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #485367;
+  border-radius: 5px;
+  background: #191d26;
+}
+.font-picker-count {
+  font-size: 10px;
+  color: #9badc9;
+}
+.font-picker-choices select {
+  padding: 0;
+}
+.font-picker-choices option {
+  padding: 7px 8px;
+}
+.font-picker-choices .hint {
+  margin: 0;
+}
 .color-field:focus-within {
   border-color: var(--accent);
 }

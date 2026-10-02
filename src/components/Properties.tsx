@@ -1,4 +1,5 @@
 import type { LayerModel, TextData, ImageData, ShapeData } from '../core/types';
+import { FontPicker } from './FontPicker';
 export function NumberField({
   label,
   value,
@@ -82,14 +83,18 @@ export function Properties({
   onChange,
   onData,
   fonts,
+  fontStatus,
   onFont,
+  onReadLocalFonts,
   onImage,
 }: {
   layer: LayerModel;
   onChange: (patch: Partial<LayerModel>) => void;
   onData: (patch: Record<string, unknown>) => void;
   fonts: string[];
+  fontStatus: string;
   onFont: () => void;
+  onReadLocalFonts: () => void;
   onImage: () => void;
 }) {
   const d = layer.Data;
@@ -185,20 +190,13 @@ export function Properties({
                     导入字体
                   </button>
                 </div>
-                <label className="field">
-                  <span>字体</span>
-                  <input
-                    aria-label="字体"
-                    list="font-list"
-                    value={t.FontFamilyName}
-                    onChange={(e) => onData({ FontFamilyName: e.target.value })}
-                  />
-                  <datalist id="font-list">
-                    {fonts.map((f) => (
-                      <option key={f} value={f} />
-                    ))}
-                  </datalist>
-                </label>
+                <FontPicker
+                  value={t.FontFamilyName}
+                  fonts={fonts}
+                  status={fontStatus}
+                  onChange={(value) => onData({ FontFamilyName: value })}
+                  onReadLocalFonts={onReadLocalFonts}
+                />
                 <div className="field-grid">
                   {n('字号', 'FontSize', 1)}
                   <label className="field">
