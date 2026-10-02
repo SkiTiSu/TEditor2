@@ -87,7 +87,7 @@ export function ColorField({
 }) {
   const { hex, alpha } = colorChannels(value);
   const setAlpha = (next: string) => {
-    if (next !== '') onChange(rgbaColor(hex, Math.max(0, Math.min(1, Number(next)))));
+    if (next !== '') onChange(rgbaColor(hex, Math.max(0, Math.min(100, Number(next))) / 100));
   };
   return (
     <div className="field">
@@ -102,25 +102,26 @@ export function ColorField({
         <input aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
       </div>
       <div className="color-alpha">
-        <span>Alpha</span>
+        <span>不透明度</span>
         <input
-          aria-label={label + ' Alpha滑块'}
+          aria-label={label + '不透明度滑块'}
           type="range"
           min="0"
-          max="1"
-          step="0.01"
-          value={alpha}
+          max="100"
+          step="1"
+          value={Math.round(alpha * 100)}
           onChange={(e) => setAlpha(e.target.value)}
         />
         <input
-          aria-label={label + ' Alpha'}
+          aria-label={label + '不透明度 (%)'}
           type="number"
           min="0"
-          max="1"
-          step="0.01"
-          value={alpha}
+          max="100"
+          step="1"
+          value={Math.round(alpha * 100)}
           onChange={(e) => setAlpha(e.target.value)}
         />
+        <span>%</span>
       </div>
     </div>
   );
