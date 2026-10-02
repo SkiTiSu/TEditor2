@@ -1,0 +1,7 @@
+old/
+node_modules/
+dist/
+test-results/
+package-lock.json
+src/vendor/
+public/examples/*.ted

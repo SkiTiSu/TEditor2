@@ -1,0 +1,38 @@
+{
+  "name": "teditor2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && node scripts/generate-notices.mjs && vite build && node scripts/generate-sw.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write src tests scripts *.ts *.json index.html"
+  },
+  "dependencies": {
+    "@formulajs/formulajs": "^4.6.1",
+    "crypto-js": "^4.2.0",
+    "fflate": "^0.8.2",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "utif2": "^4.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

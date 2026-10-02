@@ -1,0 +1,1356 @@
+[
+  {
+    "formula": "if(1=1,1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(1=1,1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(3,1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if('1',1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(0,1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "iferror(1/0,1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "iferror(1-'rrr',1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "iserror(1/0,1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "iserror(1-'rrr',1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "isnull(null,1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "isnull(1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "isnullorerror(null,1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "isnullorerror(1/0,1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "isnullorerror(1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNUMBER(1),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNUMBER('e'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNUMBER('11'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNUMBER('2016-1-2'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISTEXT(1),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISTEXT('e'),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISTEXT('11'),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISTEXT('2016-1-2'),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNONTEXT(1),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNONTEXT('e'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNONTEXT('11'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISNONTEXT('2016-1-2'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISLOGICAL(1),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISLOGICAL('e'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISLOGICAL(true),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISLOGICAL(false),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISEVEN(1),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISEVEN(2),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISEVEN('e'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISODD(1),1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISODD(2),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "if(ISODD('e'),1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "and(true(),1=1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "and(true(),1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "and(true(),false(),1=1)",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "and(true(),false(),1)",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "and(true(),0)",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(true(),1=1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(true(),1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(true(),false(),1=1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(true(),false(),1)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(true(),0)",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "or(false(),1=2)",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "not(true())",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "not(false())",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "true()",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "false()",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 && 2==2 and 3=3",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 && 2!=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 && 2!=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 || 2!=2",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 and 2==2",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 and 2!=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 and 2!=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "1=1 or 2!=2",
+    "expected": true,
+    "source": "AlgorithmEngineTest_flow.cs"
+  },
+  {
+    "formula": "2+3",
+    "expected": 5,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(2)+3",
+    "expected": 5,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "2+3*2+10/2*4",
+    "expected": 28,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "2.1e3 + 10",
+    "expected": 2110,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "2.1e+03 + 10",
+    "expected": 2110,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "2.1e+3 + 10",
+    "expected": 2110,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "2.1e-3 + 10",
+    "expected": 10.0021,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "true",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "false",
+    "expected": false,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "if(true,1,2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "if(false,1,2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "'aa'&'bb'",
+    "expected": "aabb",
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "'3'+2",
+    "expected": "5",
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "count({ 1,2,3,4})",
+    "expected": 4,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(1=1)*9+2",
+    "expected": 11,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(1=2)*9+2",
+    "expected": 2,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1+(3*2+2)/2",
+    "expected": 5,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(8-3)*(3+2)",
+    "expected": 25,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(8-3)*(3+2) % 7",
+    "expected": 4,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1=1",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1<>2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1!=2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1>2",
+    "expected": false,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1<2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1<=2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "1>=2",
+    "expected": false,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "abs(-1.2)",
+    "expected": 1.2,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "QUOTIENT(7,3)",
+    "expected": 2.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "MOD(7,3)",
+    "expected": 1.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "SIGN(0)",
+    "expected": 0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "SIGN(9)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "SIGN(-9)",
+    "expected": -1,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "SQRT(9)",
+    "expected": 3.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "SUM(1,2,3,4)",
+    "expected": 10.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "TRUNC(9.222)",
+    "expected": 9.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "TRUNC(-9.222)",
+    "expected": -9.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "int(9.222)",
+    "expected": 9.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "int(-9.222)",
+    "expected": -9.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "GCD(3,5,7)",
+    "expected": 1.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "GCD(30,21)",
+    "expected": 3.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "LCM(3,5,7)",
+    "expected": 105.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "combin(10,2)",
+    "expected": 45.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "PERMUT(10,2)",
+    "expected": 90.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "degrees(pi())",
+    "expected": 180.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "ROUND(4.333,2)",
+    "expected": 4.33,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "ROUNDDOWN(4.333,2)",
+    "expected": 4.33,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "ROUNDDOWN(-3.141592, 3)",
+    "expected": -3.141,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "ROUNDUP(4.333,2)",
+    "expected": 4.34,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "ROUNDUP(-3.141592, 3)",
+    "expected": -3.142,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "CEILING(4.333,0.1)",
+    "expected": 4.4,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "CEILING(4.333)",
+    "expected": 5,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "FLOOR(4.363,0.1)",
+    "expected": 4.3,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "FLOOR(4.333)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "even(4.363)",
+    "expected": 6.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "odd(4.363)",
+    "expected": 5,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "MROUND(4.363,2)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "MROUND(5.363,2)",
+    "expected": 6,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "fact(6)",
+    "expected": 720.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "fact(3)",
+    "expected": 6.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "factdouble(10)",
+    "expected": 3840.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "POWER(10,2)",
+    "expected": 100.0,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "1 > (-2)",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "(-1) > (-2）",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "-1 > (-2)",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "-1 > -2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "-7 < -2",
+    "expected": true,
+    "source": "AlgorithmEngineTest.cs"
+  },
+  {
+    "formula": "vlookup({{1,2,3},{2,3,4},{3,4,5},{4,5,6}},3,2)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_vlookup.cs"
+  },
+  {
+    "formula": "vlookup({{1,'2',3},{2,'3',4},{3,'4',5},{4,'5',6}},3,2)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_vlookup.cs"
+  },
+  {
+    "formula": "vlookup({{1,'2',3},{2,'3',4},{3,'4',5},{4,'5',6}},3.1,2)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_vlookup.cs"
+  },
+  {
+    "formula": "vlookup({{1,'2',3},{2,'3',4},{'3a','4',5},{4,'5',6}},'3a',2)",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_vlookup.cs"
+  },
+  {
+    "formula": "lookup([jsonArray].Json(),'[saleCount]=91','specId')",
+    "expected": "43b0e72e98731aed69e1f0cc7d64bf4d",
+    "source": "AlgorithmEngineTest_vlookup.cs",
+    "row": {
+      "jsonArray": "[{'灰色':'L','saleCount':91,'specId':'43b0e72e98731aed69e1f0cc7d64bf4d'},{'蓝色':'L','saleCount':35,'specId':'e959b6ab7c355e403a3312c75bd3d5b4'}]"
+    }
+  },
+  {
+    "formula": "lookup([jsonArray].Json(),'[saleCount]=35','specId')",
+    "expected": "e959b6ab7c355e403a3312c75bd3d5b4",
+    "source": "AlgorithmEngineTest_vlookup.cs",
+    "row": {
+      "jsonArray": "[{'灰色':'L','saleCount':91,'specId':'43b0e72e98731aed69e1f0cc7d64bf4d'},{'蓝色':'L','saleCount':35,'specId':'e959b6ab7c355e403a3312c75bd3d5b4'}]"
+    }
+  },
+  {
+    "formula": "lookup([jsonArray].Json(),'[蓝色]=\"L\"','specId')",
+    "expected": "e959b6ab7c355e403a3312c75bd3d5b4",
+    "source": "AlgorithmEngineTest_vlookup.cs",
+    "row": {
+      "jsonArray": "[{'灰色':'L','saleCount':91,'specId':'43b0e72e98731aed69e1f0cc7d64bf4d'},{'蓝色':'L','saleCount':35,'specId':'e959b6ab7c355e403a3312c75bd3d5b4'}]"
+    }
+  },
+  {
+    "formula": "UrlDecode('%26%3d%e6%88%91%e4%b8%ad%e5%9b%bd%e4%ba%ba+%3e%7c%7c')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "UrlEncode('&=我中国人 >||')",
+    "expected": "%26%3d%e6%88%91%e4%b8%ad%e5%9b%bd%e4%ba%ba+%3e%7c%7c",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HtmlEncode('&=我中国人 >||')",
+    "expected": "&amp;=我中国人 &gt;||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HtmlDecode('&amp;=我中国人 &gt;||')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TextToBase64('&=我中国人 >||')",
+    "expected": "Jj3miJHkuK3lm73kurogPnx8",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TextToBase64('&=我中国人 >||','GBK')",
+    "expected": "Jj3O0tbQufrIyyA+fHw=",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TextToBase64Url('&=我中国人 >||')",
+    "expected": "Jj3miJHkuK3lm73kurogPnx8",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TextToBase64Url('&=我中国人 >||','GBK')",
+    "expected": "Jj3O0tbQufrIyyA-fHw",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Base64ToText('Jj3miJHkuK3lm73kurogPnx8')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Base64ToText('Jj3O0tbQufrIyyA+fHw=','GBK')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Base64UrlToText('Jj3miJHkuK3lm73kurogPnx8')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Base64UrlToText('Jj3O0tbQufrIyyA-fHw','GBK')",
+    "expected": "&=我中国人 >||",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Regex('abcd','a.*c')",
+    "expected": "abc",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsRegex('abcd','a.*c')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsRegex('abcd','da.*c')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Md5('&=我中国人 >||')",
+    "expected": "2E1CEFBDFA3677725B7856E02D225819",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Sha1('&=我中国人 >||')",
+    "expected": "F2C250C58F3A40DC54B5A47F0F6B1187AD5AC2EE",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Sha256('&=我中国人 >||')",
+    "expected": "FA5BF04D13AEF750D62040E492479A16B6B10888D0B19923A1E7B9339990632A",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Sha512('&=我中国人 >||')",
+    "expected": "FFEAC98C39D76CD86A3AB8ECEF16BE23166F68E1A3C5C9809A8AD2CE417170465286E4CF6FFA17924613CD7477533B9109A5DD504A2462F9DB693D56AD365C14",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Crc32('&=我中国人 >||')",
+    "expected": "60649EFF",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HmacMd5('&=我中国人 >||','12')",
+    "expected": "CF3923196E21B1E270FD72B089B092BB",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HmacSha1('&=我中国人 >||','12')",
+    "expected": "EB4D4FC2AA5637060FD12004DF845801D8902105",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HmacSha256('&=我中国人 >||','12')",
+    "expected": "3E25E0D14039E8258BBBBD15F7E3B91BB497A8966C12E1DEA3D651BF03CB4B97",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "HmacSha512('&=我中国人 >||','12')",
+    "expected": "4E9CE785C46569965C7C712A841EC7382C64D918D49F992EDB3504BED9C3A5EFBB1C8F712968F6B904417E07F9D72E707FCF148D55A4D3EDF1A9866B7BAC2049",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Split('1,2,3,4',',')[3]",
+    "expected": "3",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TrimStart(' 123 ')",
+    "expected": "123 ",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TrimStart(' 123 ',' 1')",
+    "expected": "23 ",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TrimEnd(' 123 ')",
+    "expected": " 123",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "TrimEnd(' 123 ','3 ')",
+    "expected": " 12",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Join(',',1,2,5,6)",
+    "expected": "1,2,5,6",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Join(',',1,2,5,6,split('7,8,9',','))",
+    "expected": "1,2,5,6,7,8,9",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "Substring('123456789',1,2)",
+    "expected": "12",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "StartsWith('123456789','12')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "StartsWith('123456789','127')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "EndsWith('123456789','89')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "EndsWith('123456789','127')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsNullOrEmpty('')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsNullOrEmpty(' ')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsNullOrWhiteSpace('')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsNullOrWhiteSpace('   ')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "IsNullOrWhiteSpace(' f ')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "RemoveStart('123456789','12')",
+    "expected": "3456789",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "RemoveStart('123456789','127')",
+    "expected": "123456789",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "RemoveEnd('123456789','89')",
+    "expected": "1234567",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "RemoveEnd('123456789','127')",
+    "expected": "123456789",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "json('{\"Name\":\"William Shakespeare\",\"Age\":51,\"Birthday\":\"04/26/1564 00:00:00\"}')[Birthday]",
+    "expected": "04/26/1564 00:00:00",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "json('[1,2,3]')[1]",
+    "expected": "1",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "json('{\"Name\":\"William Shakespeare   \",\"Age\":51,\"Birthday\":\"04/26/1564 00:00:00\"}')[Name].Trim()",
+    "expected": "William Shakespeare",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "json('{\"Name1\":\"William Shakespeare \",\"Age\":51,\"Birthday\":\"04/26/1564 00:00:00\"}')['Name'& 1].Trim().substring(2,3)",
+    "expected": "ill",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "json('[1,2,3,4,5,6]')[1].Trim()",
+    "expected": "1",
+    "source": "AlgorithmEngineTest_csharp.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,7))",
+    "expected": 7,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,7),1)",
+    "expected": 7,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,7),2)",
+    "expected": 6,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,7),3)",
+    "expected": 5,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,8),1)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,8),2)",
+    "expected": 7,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,8),3)",
+    "expected": 6,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,2),1)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,2),2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKDAY(date(2017,1,2),3)",
+    "expected": 0,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','y')",
+    "expected": 41,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','m')",
+    "expected": 503,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','d')",
+    "expected": 15318,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','yd')",
+    "expected": 342,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','ym')",
+    "expected": 11,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DATEDIF('1975-1-30','2017-1-7','md')",
+    "expected": 8,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "DAYS360('1975-1-30','2017-1-7')",
+    "expected": 15097,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "NETWORKDAYS(\"2012-1-1\",\"2013-1-1\")",
+    "expected": 262,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKNUM(\"2016-1-3\")",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKNUM(\"2016-1-2\")",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKNUM(\"2016-1-4\",2)",
+    "expected": 2,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKNUM(\"2016-1-3\",2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "WEEKNUM(\"2016-1-2\",2)",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_dateTime.cs"
+  },
+  {
+    "formula": "asc('ａｂｃＡＢＣ１２３')",
+    "expected": "abcABC123",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "jis('abcABC123')",
+    "expected": "ａｂｃＡＢＣ１２３",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "WIDECHAR('abcABC123')",
+    "expected": "ａｂｃＡＢＣ１２３",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "char(49)",
+    "expected": "1",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "clean('\\r112\\t')",
+    "expected": "112",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "code('1')",
+    "expected": 49,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "CONCATENATE('tt','33')",
+    "expected": "tt33",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "EXACT('tt','33')",
+    "expected": false,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "EXACT('tt','tt')",
+    "expected": true,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "FIND(\"11\",\"12221122\")",
+    "expected": 5,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "FIXED(4567.89,1)",
+    "expected": "4,567.9",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "FIXED(-4567.89, 1, TRUE())",
+    "expected": "-4567.9",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "FIXED(77.888)",
+    "expected": "77.89",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "LEFT('123222',3)",
+    "expected": "123",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "LEN('123222')",
+    "expected": 6,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "LOWER('ABC')",
+    "expected": "abc",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "MID('ABCDEF',2,3)",
+    "expected": "BCD",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "PROPER('abc abc')",
+    "expected": "Abc Abc",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "REPLACE(\"abccd\",2,3,\"2\")",
+    "expected": "a2d",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "REPLACE(\"abccd\",'bc',\"2\")",
+    "expected": "a2cd",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "REPT(\"q\",3)",
+    "expected": "qqq",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "RIGHT(\"123q\",3)",
+    "expected": "23q",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "rmb(12.3)",
+    "expected": "壹拾贰元叁角",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "SEARCH(\"aa\",\"abbAaddd\")",
+    "expected": 4,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "SUBSTITUTE(\"ababcc\",\"ab\",\"12\")",
+    "expected": "1212cc",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "SUBSTITUTE(\"ababcc\",\"ab\",\"12\",2)",
+    "expected": "ab12cc",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "T(12)",
+    "expected": "",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "T('123')",
+    "expected": "123",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "TEXT(123,\"0.00\")",
+    "expected": "123.00",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "TRIM(\" 123 123 \")",
+    "expected": "123 123",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "UPPER(\"abc\")",
+    "expected": "ABC",
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "VALUE(\"123\")",
+    "expected": 123,
+    "source": "AlgorithmEngineTest_string.cs"
+  },
+  {
+    "formula": "max(1,2,3,4,2,2,1,4)",
+    "expected": 4.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "MEDIAN(1,2,3,4,2,2,1,4)",
+    "expected": 2.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "MIN(1,2,3,4,2,2,1,4)",
+    "expected": 1.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "QUARTILE({1,2,3,4,2,2,1,4},0)",
+    "expected": 1.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "QUARTILE({1,2,3,4,2,2,1,4},1)",
+    "expected": 1.75,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "QUARTILE({1,2,3,4,2,2,1,4},2)",
+    "expected": 2.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "QUARTILE({1,2,3,4,2,2,1,4},3)",
+    "expected": 3.25,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "QUARTILE({1,2,3,4,2,2,1,4},4)",
+    "expected": 4.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "MODE(1,2,3,4,2,2,1,4)",
+    "expected": 2.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "PERCENTILE({1,2,3,4,2,2,1,4}，0.4)",
+    "expected": 2.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "PERCENTRANK({1,2,3,4,2,2,1,4}，3)",
+    "expected": 0.714,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "AVERAGE(1,2,3,4,2,2,1,4)",
+    "expected": 2.375,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "COUNT(1,2,3,4,2,2,1,4)",
+    "expected": 8.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "AVEDEV(1,2,3,4,2,2,1,4)",
+    "expected": 0.96875,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "COUNTIF({1,2,3,4,2,2,1,4},'>1')",
+    "expected": 6.0,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "SUMIF({1,2,3,4,2,2,1,4},'>1')",
+    "expected": 17,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "SUMIF({1,2,3,4,2,2,1,4},'>1',{1,1,1,1,1,1,1,1})",
+    "expected": 6,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "AVERAGEIF({1,2,3,4,2,2,1,4},'>1',{1,1,1,1,1,1,1,1})",
+    "expected": 1,
+    "source": "AlgorithmEngineTest_sum.cs"
+  },
+  {
+    "formula": "BIN2DEC(10101)",
+    "expected": 21,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "OCT2DEC(12456)",
+    "expected": 5422,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "HEX2DEC('213adf')",
+    "expected": 2177759,
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "DEC2BIN(10)",
+    "expected": "1010",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "OCT2BIN('721')",
+    "expected": "111010001",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "HEX2BIN('fa')",
+    "expected": "11111010",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "'fa'.HEX2BIN()",
+    "expected": "11111010",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "BIN2OCT(10)",
+    "expected": "2",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "DEC2OCT('75')",
+    "expected": "113",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "HEX2OCT('f5')",
+    "expected": "365",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "BIN2HEX(101010100)",
+    "expected": "154",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "OCT2HEX(75212)",
+    "expected": "7A8A",
+    "source": "AlgorithmEngineTest_math.cs"
+  },
+  {
+    "formula": "DEC2HEX(952)",
+    "expected": "3B8",
+    "source": "AlgorithmEngineTest_math.cs"
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-02",
+  "fixture": "tests/export.spec.ts: exports 500 real 1920×1080 PNGs sequentially with bounded canvas allocation",
+  "report": {"completed":500,"total":500,"warnings":[],"cancelled":false},
+  "width":1920,
+  "height":1080,
+  "elapsedMs":3532.300000000745,
+  "bytes":63873235,
+  "validPNGs":500,
+  "closed":500,
+  "aborts":0,
+  "peakActiveWrites":1,
+  "resolverCalls":500,
+  "canvasesCreated":8,
+  "heapSamples":[{"completed":0,"bytes":3880017},{"completed":50,"bytes":4546404},{"completed":100,"bytes":4227432},{"completed":150,"bytes":4634320},{"completed":200,"bytes":4217604},{"completed":250,"bytes":4573888},{"completed":300,"bytes":4181216},{"completed":350,"bytes":4534224},{"completed":400,"bytes":4884516},{"completed":450,"bytes":4393396},{"completed":500,"bytes":5498344}],
+  "note":"Observed from the completed browser regression run. Mock writable validates then discards each PNG; physical disk time is excluded. Chrome performance.memory is JS heap only and excludes native canvas and encoding allocations. Real writable streams are verified in a separate test."
+}

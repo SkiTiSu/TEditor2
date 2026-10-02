@@ -1,0 +1,12 @@
+# ToolGood.Algorithm v2 compatibility fixtures
+
+The original desktop application uses ToolGood.Algorithm 2.2.0.2. Golden examples in `v2-regression-fixtures.json` were extracted from its Apache-2.0 licensed test suite, at commit 9045ac67985e913f4676c4e7dbc7461626b7f95e:
+https://github.com/toolgood/ToolGood.Algorithm/tree/9045ac67985e913f4676c4e7dbc7461626b7f95e/csharp/ToolGood.Algorithm2.Test/AlgorithmEngine
+
+The original Apache-2.0 license is retained in LICENSE. Fixture expressions and expected results are unchanged; their C# assertion wrappers were converted to JSON. One upstream test that asserts a caller-provided fallback for malformed syntax is excluded: the web editor deliberately reports formula errors. Two tests explicitly setting `UseExcelIndex = false` are also excluded because TEditor always uses the default one-based index; JSON lookup fixture rows were retained with the fields needed by each assertion. There are 269 upstream golden examples.
+
+`src/core/expression.ts` is a safe TypeScript interpreter. It implements the v2 grammar and parameter syntaxes, operator/date/text compatibility functions, and delegates Excel function calculations to MIT-licensed @formulajs/formulajs. Hash/encoding functions use MIT-licensed crypto-js. There are no eval, Function constructor, CDN, network, or script-execution paths. No Noncommercial-licensed ToolGood v6 implementation is included.
+
+Compatibility covers bracket/hash/at/Chinese-bracket columns, brace arrays, AND/OR operators, fullwidth punctuation, numeric row coercion, v2 twelve-decimal comparison and mixed string/number comparisons, date/day arithmetic, INT truncation, and legacy REGEXREPALCE. Errors are visible in the editor. Calendar arithmetic intentionally fixes the old date conversion implementation's double-counting of hour fractions. Real templates remain necessary to verify uncommon version-specific formula combinations.
+
+Known boundaries: functions inherit IEEE-754 arithmetic and statistical approximations from their JavaScript implementations; extreme-tail probabilities may differ from MathNet. `TEXT` supports common numeric formats (N/F/P/E/G/D/X and Formula.js patterns) and numeric date/time components; uncommon .NET custom date-format directives and OS-dependent month/day-name localization are not guaranteed identical. Dates use calendar arithmetic, including leap days. Custom DLL-provided functions were never available through the desktop editor and are not exposed in the browser.
