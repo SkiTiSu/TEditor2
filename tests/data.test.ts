@@ -30,6 +30,29 @@ describe('local table import', () => {
       { 编号: '02', 说明: '多\n行', 值: '0' },
     ]);
   });
+  it.each([undefined, '\t'])('preserves literal quotes in clipboard TSV (%s)', (delimiter) => {
+    const table = parseTable(
+      '原排名\t曲名\t播放\r\n4\t【星尘原创】"伟大的浪漫主义"\t0092841\r\n8\t未配对的"引号\t0250816',
+      delimiter,
+    );
+    expect(table.rows).toEqual([
+      { 原排名: '4', 曲名: '【星尘原创】"伟大的浪漫主义"', 播放: '0092841' },
+      { 原排名: '8', 曲名: '未配对的"引号', 播放: '0250816' },
+    ]);
+  });
+  it('still decodes quoted TSV cells with escaped quotes, tabs and newlines', () => {
+    expect(
+      parseTable('曲名\t播放\n"【星尘原创】""伟大的浪漫主义""\t现场\n版"\t0092841').rows,
+    ).toEqual([{ 曲名: '【星尘原创】"伟大的浪漫主义"\t现场\n版', 播放: '0092841' }]);
+  });
+  it.each([
+    'a,b\ntext"quote,1',
+    'a;b\ntext"quote;1',
+    'a\tb\n"closed""""\t1',
+    'a\tb\n"unfinished\t1',
+  ])('retains strict CSV and quoted TSV validation: %s', (text) =>
+    expect(() => parseTable(text)).toThrow(),
+  );
   it('supports explicit and autodetected semicolons', () => {
     expect(parseTable('a;b\n1;2').rows).toEqual([{ a: '1', b: '2' }]);
     expect(parseTable('a|b\n1|2', '|').rows).toEqual([{ a: '1', b: '2' }]);

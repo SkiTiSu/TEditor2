@@ -53,6 +53,12 @@ export function parseTable(text: string, delimiter?: string): TableData {
       if (c === '\r' && text[i + 1] === '\n') i++;
       pushRow();
     } else if (c === '"') {
+      // Clipboard TSV can contain literal quotes inside unquoted cells.
+      // Quotes at the start of a cell still support Excel's escaped/multiline format.
+      if (delimiter === '\t' && field && !closed) {
+        field += c;
+        continue;
+      }
       if (field || closed) throw new Error(`第 ${records.length + 1} 行引号位置不正确。`);
       quoted = true;
     } else {
