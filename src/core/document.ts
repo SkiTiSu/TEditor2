@@ -225,6 +225,7 @@ export function createLayer(key: LayerKey): LayerModel {
     Left: 0,
     Top: 0,
     Visible: true,
+    PageBackground: false,
     LayerNameCustom: '',
     ClippingMaskEnable: false,
     ClippingMaskBottom: false,
@@ -265,6 +266,7 @@ function normalizeLayer(input: unknown, legacy: boolean, index: number): LayerMo
   layer.Left = number(raw.Left, 0, '图层 X');
   layer.Top = number(raw.Top, 0, '图层 Y');
   layer.Visible = boolean(raw.Visible, true);
+  layer.PageBackground = boolean(raw.PageBackground);
   layer.LayerNameCustom = string(raw.LayerNameCustom);
   layer.ClippingMaskEnable = boolean(raw.ClippingMaskEnable);
   layer.ClippingMaskBottom = boolean(raw.ClippingMaskBottom);
@@ -405,8 +407,9 @@ export function cloneDocument(document: TedDocument): TedDocument {
   return JSON.parse(JSON.stringify(document)) as TedDocument;
 }
 
-/** The first array entry is the topmost layer. This does not reorder the array. */
+/** Top-first order, with page backgrounds kept below all repeating content. */
 export function normalizeLayerOrder(document: TedDocument): void {
+  document.Layers.sort((a, b) => Number(!!a.PageBackground) - Number(!!b.PageBackground));
   document.Layers.forEach((layer, index) => {
     layer.ZIndex = document.Layers.length - 1 - index;
   });

@@ -412,6 +412,14 @@ kbd {
 .layer-row:hover {
   background: #ffffff06;
 }
+.layer-background-tag {
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border: 1px solid #7566a5;
+  border-radius: 3px;
+  color: #c7b9ef;
+  font-size: 9px;
+}
 .layer-row.selected {
   background: #607fe72b;
   border-left-color: #7f9afa;

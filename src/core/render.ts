@@ -454,7 +454,7 @@ export async function renderDocument(
   return renderComposite(canvas, [doc], 0, 0, resolveImage);
 }
 
-/** Draw consecutive data rows on the same fixed-size page. Clipping masks stay within each copy. */
+/** Draw page backgrounds once, then consecutive rows. Masks stay within each pass. */
 export async function renderComposite(
   canvas: HTMLCanvasElement,
   docs: TedDocument[],
@@ -471,13 +471,21 @@ export async function renderComposite(
   const revision = ++state.revision;
   const documents = docs.map(snapshot);
   const [width, height] = dimensions(documents[0]);
+  const passes = [
+    { layers: documents[0].Layers.filter((layer) => layer.PageBackground), dx: 0, dy: 0 },
+    ...documents.map((doc, copy) => ({
+      layers: doc.Layers.filter((layer) => !layer.PageBackground),
+      dx: number(deltaX) * copy,
+      dy: number(deltaY) * copy,
+    })),
+  ];
   const warnings = new Set<string>();
   const images = new Map<LayerModel, CanvasImageSource | null>();
   const imageJobs = new Map<string, Promise<CanvasImageSource | null>>();
   const fonts = new Map<string, string>();
   const jobs: Promise<unknown>[] = [];
-  for (const doc of documents)
-    for (const layer of doc.Layers) {
+  for (const pass of passes)
+    for (const layer of pass.layers) {
       if (layer.Key === 'Text') {
         const data = layer.Data as TextData;
         const font = canvasFont(data);
@@ -510,12 +518,11 @@ export async function renderComposite(
   if (revision !== state.revision) return { bounds: {}, warnings: [] };
   const page = surface(state, 'page', width, height);
   const bounds: Record<string, Bounds> = {};
-  for (let copy = 0; copy < documents.length; copy++) {
-    const layers = documents[copy].Layers.slice().sort((a, b) => a.ZIndex - b.ZIndex);
+  for (const pass of passes) {
+    const layers = pass.layers.slice().sort((a, b) => a.ZIndex - b.ZIndex);
     let base: Surface | undefined;
     let hasBase = false;
-    const dx = number(deltaX) * copy,
-      dy = number(deltaY) * copy;
+    const { dx, dy } = pass;
     for (let index = 0; index < layers.length; index++) {
       const original = layers[index];
       const layer = {

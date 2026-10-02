@@ -53,6 +53,7 @@ export interface LayerModel {
   Left: number;
   Top: number;
   Visible: boolean;
+  PageBackground: boolean;
   LayerNameCustom: string;
   ClippingMaskEnable: boolean;
   ClippingMaskBottom: boolean;

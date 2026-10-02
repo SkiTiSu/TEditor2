@@ -43,6 +43,8 @@ npm run preview
 
 批量导出窗口右侧提供实时排版预览：调整行范围、额外副本数和 X/Y 偏移即可查看结果，无需先导出。使用预览下方的左右箭头切换输出页，查看对应数据行及最后一页；预览与 PNG 导出共用变量、条件组和裁切逻辑。透明区域显示棋盘格，零偏移导致副本重叠时会提示。
 
+制作同页多条的副榜时，选中整页底图，在右侧图层属性勾选 **“整页背景（不重复）”**。背景会自动排到普通图层下方，每张输出只绘制一次，保持原坐标；白色条目底板、排名、标题等普通图层继续随数据重复。图片、文字和图形均可设为背景，支持多个背景叠加；背景中的变量和条件取本页第一行数据。背景与普通图层分别计算剪贴蒙版，背景的蒙版基础图层也应设为背景。该设置随 `.ted` 保存，旧模板默认所有图层照常重复。
+
 快捷键：`Ctrl/Cmd + S` 保存，`Ctrl/Cmd + O` 打开，`Ctrl/Cmd + D` 复制，`Ctrl/Cmd + Z` 撤销，`Ctrl/Cmd + Shift + Z` 重做，`Delete/Backspace` 删除，方向键移动 1 像素、`Shift` 加速至 10 像素。空格拖动画布，`Alt + 滚轮` 缩放；输入框内保留正常文字编辑行为。
 
 ## 旧版 GUI 功能清单
@@ -76,6 +78,7 @@ npm run preview
 - [`public/examples/legacy-all-features.ted`](public/examples/legacy-all-features.ted)：合成的旧版模板，包含四类图层、内嵌 PNG、半透明颜色、文字效果、圆形蒙版、变量和 VIP 显隐条件。
 - [`public/examples/legacy-data.csv`](public/examples/legacy-data.csv)：与该模板配套的 12 行数据，列为 `姓名`、`城市`、`编号`、`等级`。先打开模板，再导入 CSV，即可检查逐行内容和 VIP 条件变化。
 - 默认演示的 SVG 头像、人物名称和表格数据由项目代码生成；验证用 PNG 也为程序生成，不依赖远程素材。
+- [`public/examples/secondary-ranking.ted`](public/examples/secondary-ranking.ted) 和 [`public/examples/secondary-ranking.csv`](public/examples/secondary-ranking.csv)：自生成的紫色渐变副榜。先打开模板并导入配套 CSV，再设置额外副本数 **3**、X 偏移 **0**、Y 偏移 **250**，即可预览每页四条榜单，第二页仅剩一条，整页背景均保持完整。
 
 ## 测试
 
@@ -96,6 +99,7 @@ npm run test:e2e
 | `tests/offline.spec.ts` | 生产构建首次缓存后断网刷新、编辑和导出 |
 | `tests/export.spec.ts` | 500 张 1080p PNG、范围与副本像素、重名保护、ZIP 分包、取消和写入失败 |
 | `tests/batch-preview.spec.ts` | 实时副本偏移、逐页数据与条件组、预览 / PNG 逐像素一致、无数据、无效范围及小窗口布局 |
+| `tests/page-background.spec.ts` | 整页背景只绘制一次、半透明与蒙版、首行变量、开关与撤销、保存重开、四行副榜及尾页的预览 / PNG 逐像素一致 |
 
 单独运行批量基准：
 

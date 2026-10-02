@@ -308,6 +308,7 @@ describe('editing helpers', () => {
       expect(one.Id).not.toBe(two.Id);
       expect(one.Data).not.toBe(two.Data);
       expect(one.Visible).toBe(true);
+      expect(one.PageBackground).toBe(false);
       expect(Object.values(one.Data)).not.toContain(undefined);
     }
     expect((createLayer('Image').Data as ImageData).VariableImageUrl).toBe('');
@@ -332,6 +333,24 @@ describe('editing helpers', () => {
     (copied.Data as TextData).Text = '独立';
     expect((duplicate.Layers[1].Data as TextData).Text).toBe('姓名');
     expect(duplicate.Layers.map((layer) => layer.ZIndex)).toEqual([4, 3, 2, 1, 0]);
+  });
+
+  it('preserves page backgrounds through ordering, duplication and template round trips', () => {
+    const doc = createDocument();
+    const background = createLayer('Image'),
+      tint = createLayer('Rectangle'),
+      row = createLayer('Text');
+    background.PageBackground = tint.PageBackground = true;
+    doc.Layers = [tint, row, background];
+    normalizeLayerOrder(doc);
+    expect(doc.Layers.map((layer) => layer.Id)).toEqual([row.Id, tint.Id, background.Id]);
+    const restored = parseDocument(serializeDocument(doc)).document;
+    expect(restored.Layers.map((layer) => layer.PageBackground)).toEqual([false, true, true]);
+    const copied = duplicateLayer(restored, background.Id);
+    expect(copied.Layers.slice(1).every((layer) => layer.PageBackground)).toBe(true);
+    expect(
+      normalizeDocument(legacyFixture()).document.Layers.every((layer) => !layer.PageBackground),
+    ).toBe(true);
   });
 
   it('normalizes ZIndex using the current array without undoing a user reorder', () => {

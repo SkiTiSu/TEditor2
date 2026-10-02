@@ -132,10 +132,23 @@ export function Properties({
         </div>
         <Toggle label="显示图层" value={layer.Visible} onChange={(v) => onChange({ Visible: v })} />
         <Toggle
+          label="整页背景（不重复）"
+          value={layer.PageBackground}
+          onChange={(v) => onChange({ PageBackground: v })}
+        />
+        {layer.PageBackground && (
+          <p className="hint">
+            固定在普通图层下方，每页只绘制一次，不随副本偏移。变量和条件使用本页第一行数据。
+          </p>
+        )}
+        <Toggle
           label="剪贴到下方图层"
           value={layer.ClippingMaskEnable}
           onChange={(v) => onChange({ ClippingMaskEnable: v })}
         />
+        {layer.PageBackground && layer.ClippingMaskEnable && (
+          <p className="hint">剪贴蒙版的基础图层也需设为整页背景。</p>
+        )}
       </section>
       {layer.Key === 'Text' &&
         (() => {

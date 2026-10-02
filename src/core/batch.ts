@@ -13,8 +13,23 @@ export async function renderBatchPage(
   resolveImage: ImageResolver,
 ): Promise<RenderResult> {
   const warnings = new Set<string>();
-  const documents = indices.map((index) => {
-    const result = resolveDocument(document, table.rows.length ? table.rows[index] : undefined);
+  const repeatingLayers = document.Layers.filter((layer) => !layer.PageBackground);
+  const repeatingIds = new Set(repeatingLayers.map((layer) => layer.Id));
+  const repeatingDocument = {
+    ...document,
+    Layers: repeatingLayers,
+    DocModel: {
+      ...document.DocModel,
+      FormatConditionGroups: document.DocModel.FormatConditionGroups.filter((group) =>
+        group.EffctiveLayers.some((id) => repeatingIds.has(id)),
+      ),
+    },
+  };
+  const documents = indices.map((index, copy) => {
+    const result = resolveDocument(
+      copy === 0 ? document : repeatingDocument,
+      table.rows.length ? table.rows[index] : undefined,
+    );
     result.warnings.forEach((warning) => warnings.add(warning));
     return result.document;
   });

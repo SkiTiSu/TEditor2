@@ -193,7 +193,8 @@ export default function App() {
     () => [...new Set([...resolved.warnings, ...renderWarnings])],
     [resolved.warnings, renderWarnings],
   );
-  const selectedLayer = doc.Layers.find((l) => l.Id === selected),
+  const selectedLayerIndex = doc.Layers.findIndex((l) => l.Id === selected),
+    selectedLayer = doc.Layers[selectedLayerIndex],
     selectedBounds = selected ? bounds[selected] : undefined;
   const notice = (message: string) => setToast(message);
   useEffect(() => {
@@ -450,6 +451,14 @@ export default function App() {
     if (created) setSelected(created.Id);
   }
   function reorder(id: string, target: number) {
+    const layers = docRef.current.Layers;
+    const index = layers.findIndex((layer) => layer.Id === id);
+    if (index < 0) return;
+    const peers = layers
+      .map((layer, i) => ({ layer, i }))
+      .filter(({ layer }) => layer.PageBackground === layers[index].PageBackground);
+    target = Math.max(peers[0].i, Math.min(target, peers.at(-1)!.i));
+    if (index === target) return;
     mutate((d) => {
       const index = d.Layers.findIndex((l) => l.Id === id);
       if (index < 0) return;
@@ -993,6 +1002,11 @@ export default function App() {
                   <span className="layer-name">
                     {layer.LayerNameCustom || typeNames[layer.Key]}
                   </span>
+                  {layer.PageBackground && (
+                    <span className="layer-background-tag" title="整页背景：每页一次，不随副本偏移">
+                      背景
+                    </span>
+                  )}
                   <button
                     className="icon-button visibility"
                     aria-label={(visible ? '隐藏 ' : '显示 ') + layer.LayerNameCustom}
@@ -1019,7 +1033,11 @@ export default function App() {
               className="icon-button"
               title="上移图层"
               aria-label="上移图层"
-              disabled={!selectedLayer}
+              disabled={
+                !selectedLayer ||
+                selectedLayerIndex <= 0 ||
+                doc.Layers[selectedLayerIndex - 1].PageBackground !== selectedLayer.PageBackground
+              }
               onClick={() =>
                 selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) - 1)
               }
@@ -1030,7 +1048,11 @@ export default function App() {
               className="icon-button"
               title="下移图层"
               aria-label="下移图层"
-              disabled={!selectedLayer}
+              disabled={
+                !selectedLayer ||
+                selectedLayerIndex === doc.Layers.length - 1 ||
+                doc.Layers[selectedLayerIndex + 1].PageBackground !== selectedLayer.PageBackground
+              }
               onClick={() =>
                 selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) + 1)
               }

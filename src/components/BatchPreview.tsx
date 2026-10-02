@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import type { BatchPlan } from '../core/data';
 import { renderBatchPage } from '../core/batch';
@@ -32,23 +32,29 @@ export function BatchPreview({
   // Changing the range or group size starts at the first output page; changing offsets keeps it.
   const planKey = `${plans[0]?.start}:${plans[0]?.end}:${plans.at(-1)?.end}:${plans.length}`;
   const [selection, setSelection] = useState({ key: planKey, page: 0 });
+  if (selection.key !== planKey) setSelection({ key: planKey, page: 0 });
   const page = selection.key === planKey ? Math.min(selection.page, plans.length - 1) : 0;
   const plan = plans[page];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scratchRef = useRef<HTMLCanvasElement | null>(null);
-  const [busy, setBusy] = useState(true);
+  const request = useMemo(
+    () => ({ doc, table, plan, error, deltaX, deltaY, resolveImage, assetRevision, fonts }),
+    [doc, table, plan, error, deltaX, deltaY, resolveImage, assetRevision, fonts],
+  );
+  const [finishedRequest, setFinishedRequest] = useState<typeof request | null>(null);
+  const busy = finishedRequest !== request;
   const [renderError, setRenderError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
 
   useEffect(() => {
+    const { doc, table, plan, error, deltaX, deltaY, resolveImage } = request;
     let active = true;
-    setBusy(true);
     setRenderError('');
     setWarnings([]);
     // Coalesce fast input changes and only render the selected output page.
     const timer = window.setTimeout(async () => {
       if (!plan || error) {
-        if (active) setBusy(false);
+        if (active) setFinishedRequest(request);
         return;
       }
       try {
@@ -71,16 +77,16 @@ export function BatchPreview({
       } catch (cause) {
         if (active) setRenderError(cause instanceof Error ? cause.message : String(cause));
       } finally {
-        if (active) setBusy(false);
+        if (active) setFinishedRequest(request);
       }
     }, 120);
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [doc, table, plan, error, deltaX, deltaY, resolveImage, assetRevision, fonts]);
+  }, [request]);
 
-  const problem = error || renderError;
+  const problem = error || (!busy && renderError);
   return (
     <section className="batch-preview" aria-label="同页排版预览">
       <div className="batch-preview-heading">
@@ -136,10 +142,16 @@ export function BatchPreview({
       <p className="hint">
         {doc.DocModel.Width} × {doc.DocModel.Height} px · 与导出使用相同排版，超出画布的内容会裁切。
       </p>
+      {doc.Layers.some((layer) => layer.PageBackground) && (
+        <p className="batch-preview-note">
+          {doc.Layers.filter((layer) => layer.PageBackground).length}{' '}
+          个整页背景固定不重复，其余图层随数据排版。
+        </p>
+      )}
       {plan && plan.indices.length > 1 && deltaX === 0 && deltaY === 0 && (
         <p className="batch-preview-note">X、Y 偏移均为 0，副本会重叠。调整偏移即可展开。</p>
       )}
-      {warnings.length > 0 && (
+      {!busy && warnings.length > 0 && (
         <details className="batch-preview-warnings">
           <summary>{warnings.length} 条素材或数据提示</summary>
           {warnings.map((warning) => (
