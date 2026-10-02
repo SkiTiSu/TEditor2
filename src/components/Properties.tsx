@@ -1,5 +1,44 @@
 import type { LayerModel, TextData, ImageData, ShapeData } from '../core/types';
 import { FontPicker } from './FontPicker';
+
+let colorContext: CanvasRenderingContext2D | null = null;
+function colorChannels(value: string) {
+  let hexValue = value.trim();
+  if (/^#[\da-f]{3,4}$/i.test(hexValue)) {
+    hexValue = '#' + [...hexValue.slice(1)].map((digit) => digit + digit).join('');
+  }
+  if (/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(hexValue)) {
+    return {
+      hex: hexValue.slice(0, 7),
+      alpha: hexValue.length === 9 ? parseInt(hexValue.slice(7), 16) / 255 : 1,
+    };
+  }
+  colorContext ??= document.createElement('canvas').getContext('2d');
+  const ctx = colorContext!;
+  ctx.fillStyle = '#000000';
+  ctx.fillStyle = value;
+  // Read the normalized style, not pixels: fully transparent colors retain their RGB.
+  const normalized = ctx.fillStyle;
+  if (normalized.startsWith('#')) return { hex: normalized.slice(0, 7), alpha: 1 };
+  const channels = normalized.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0];
+  return {
+    hex:
+      '#' +
+      channels
+        .slice(0, 3)
+        .map((n) => Math.round(n).toString(16).padStart(2, '0'))
+        .join(''),
+    alpha: channels[3] ?? 1,
+  };
+}
+function rgbaColor(hex: string, alpha: number) {
+  return alpha === 1
+    ? hex
+    : hex +
+        Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, '0');
+}
 export function NumberField({
   label,
   value,
@@ -46,22 +85,44 @@ export function ColorField({
   value: string;
   onChange: (v: string) => void;
 }) {
-  let hex = value;
-  if (/^#[\da-f]{8}$/i.test(value)) hex = value.slice(0, 7);
-  if (!/^#[\da-f]{6}$/i.test(hex)) hex = '#000000';
+  const { hex, alpha } = colorChannels(value);
+  const setAlpha = (next: string) => {
+    if (next !== '') onChange(rgbaColor(hex, Math.max(0, Math.min(1, Number(next)))));
+  };
   return (
-    <label className="field">
+    <div className="field">
       <span>{label}</span>
       <div className="color-field">
         <input
           aria-label={label + '选择'}
           type="color"
           value={hex}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(rgbaColor(e.target.value, alpha))}
         />
         <input aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
       </div>
-    </label>
+      <div className="color-alpha">
+        <span>Alpha</span>
+        <input
+          aria-label={label + ' Alpha滑块'}
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={alpha}
+          onChange={(e) => setAlpha(e.target.value)}
+        />
+        <input
+          aria-label={label + ' Alpha'}
+          type="number"
+          min="0"
+          max="1"
+          step="0.01"
+          value={alpha}
+          onChange={(e) => setAlpha(e.target.value)}
+        />
+      </div>
+    </div>
   );
 }
 const Toggle = ({

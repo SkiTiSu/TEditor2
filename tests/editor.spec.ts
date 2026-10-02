@@ -22,6 +22,45 @@ test.afterEach(async ({ page }) => {
   expect(errors.get(page), 'unexpected browser exceptions').toEqual([]);
 });
 
+test('color picker supports RGB and RGBA while preserving alpha and transparent RGB', async ({
+  page,
+}) => {
+  await fresh(page);
+  await page.getByRole('button', { name: '添加文字', exact: true }).click();
+  const color = page.getByLabel('文字颜色', { exact: true });
+  const picker = page.getByLabel('文字颜色选择', { exact: true });
+  const alpha = page.getByLabel('文字颜色 Alpha', { exact: true });
+  await color.fill('rgb(12, 34, 56)');
+  await expect(picker).toHaveValue('#0c2238');
+  await expect(alpha).toHaveValue('1');
+  await color.fill('rgba(12, 34, 56, 0.5)');
+  await expect(alpha).toHaveValue('0.5');
+  await picker.fill('#ff8000');
+  await expect(color).toHaveValue('#ff800080');
+  await alpha.fill('0');
+  await expect(color).toHaveValue('#ff800000');
+  await expect(picker).toHaveValue('#ff8000');
+  await alpha.fill('1');
+  await expect(color).toHaveValue('#ff8000');
+  await color.fill('#1234');
+  await expect(picker).toHaveValue('#112233');
+  expect(Number(await alpha.inputValue())).toBeCloseTo(4 / 15, 2);
+  await color.fill('#11223380');
+  await expect(picker).toHaveValue('#112233');
+  expect(Number(await alpha.inputValue())).toBeCloseTo(128 / 255, 2);
+  await page.getByLabel('文字颜色 Alpha滑块', { exact: true }).fill('0.25');
+  await expect(color).toHaveValue('#11223340');
+  const saved = await saveDocument(page);
+  await fresh(page);
+  await page.locator('input[type=file][accept=".ted,.json"]').setInputFiles({
+    name: 'rgba.ted',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(saved)),
+  });
+  await page.locator('.layer-row').first().click();
+  await expect(color).toHaveValue('#11223340');
+});
+
 test('starts only one batch when export is double clicked while choosing a directory', async ({
   page,
 }) => {

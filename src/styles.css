@@ -888,6 +888,20 @@ kbd {
   padding: 4px;
   gap: 8px;
 }
+.color-alpha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.color-alpha input[type='range'] {
+  flex: 1;
+  padding: 0;
+  accent-color: var(--blue);
+}
+.color-alpha input[type='number'] {
+  width: 66px;
+}
 .font-picker > label {
   font-size: 10px;
   color: #8898af;
