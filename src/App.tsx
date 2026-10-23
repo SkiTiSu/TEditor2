@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import {
   MousePointer2,
@@ -35,6 +35,7 @@ import {
   ArrowDown,
   HelpCircle,
   FileSpreadsheet,
+  Film,
 } from 'lucide-react';
 import type {
   Bounds,
@@ -68,6 +69,13 @@ import { canvasBlob, runExport } from './core/export';
 import { NumberField, Properties } from './components/Properties';
 import { Conditions } from './components/Conditions';
 import { BatchPreview } from './components/BatchPreview';
+import { SiteCredits } from './components/SiteCredits';
+import type { GraphicSource } from './video/types';
+
+const VideoEditor = lazy(() => import('./video/VideoEditor'));
+function withRowIds(table: TableData): TableData {
+  return { ...table, rowIds: table.rows.map((_, i) => table.rowIds?.[i] || crypto.randomUUID()) };
+}
 
 const typeNames: Record<LayerKey, string> = {
   Text: '文字',
@@ -93,9 +101,12 @@ function errorText(e: unknown) {
 }
 
 export default function App() {
+  const [videoOpen, setVideoOpen] = useState(false),
+    [videoStarted, setVideoStarted] = useState(false);
+  const [linkedGraphicId, setLinkedGraphicId] = useState<string | null>(null);
   const initial = useMemo(() => createDemo(), []);
   const [doc, setDoc] = useState(initial.document),
-    [table, setTable] = useState<TableData>(initial.table),
+    [table, setTable] = useState<TableData>(() => withRowIds(initial.table)),
     [filename, setFilename] = useState('创作者周刊.ted');
   const [selected, setSelected] = useState<string | null>(null),
     [row, setRow] = useState(0),
@@ -243,7 +254,7 @@ export default function App() {
         if (draft) {
           const normalized = normalizeDocument(draft.document);
           setDoc(normalized.document);
-          setTable(draft.table || emptyTable);
+          setTable(withRowIds(draft.table || emptyTable));
           setFilename(draft.name);
           setRow(Math.max(0, Math.min(draft.row, draft.table.rows.length - 1)));
           assets.current.files = savedAssets;
@@ -398,11 +409,12 @@ export default function App() {
     }
   }
   function reset(next: TedDocument, name: string, newTable = emptyTable) {
+    setLinkedGraphicId(null);
     lastEdit.current = { label: '', time: 0 };
     setDoc(next);
     docRef.current = next;
     setFilename(name);
-    setTable(newTable);
+    setTable(withRowIds(newTable));
     setSort(null);
     setRow(0);
     setPage(0);
@@ -566,12 +578,15 @@ export default function App() {
     const name = file.name.replace(/\.(ttf|otf|woff2?)$/i, '');
     const font = new FontFace(name, await file.arrayBuffer());
     await font.load();
+    for (const previous of document.fonts)
+      if (previous.family === name) document.fonts.delete(previous);
     document.fonts.add(font);
     importedFontNames.current.add(name);
     setFonts((f) => [...new Set([...f, name])]);
     if (persist) {
       assets.current.add([file]);
       await saveAssets(assets.current.files);
+      setAssetRevision((v) => v + 1);
       notice('字体已导入：' + name);
     }
   }
@@ -614,7 +629,7 @@ export default function App() {
   async function loadData(file: File) {
     try {
       const parsed = parseTable(await decodeTextFile(file));
-      setTable(parsed);
+      setTable(withRowIds(parsed));
       setSort(null);
       setRow(0);
       setPage(0);
@@ -629,7 +644,7 @@ export default function App() {
   function pasteData() {
     try {
       const parsed = parseTable(dataText);
-      setTable(parsed);
+      setTable(withRowIds(parsed));
       setSort(null);
       setRow(0);
       setPage(0);
@@ -650,12 +665,16 @@ export default function App() {
   function sortData(column: string) {
     const direction = sort?.column === column ? -sort.direction : 1;
     const collator = new Intl.Collator('zh-CN', { numeric: true });
-    setTable((t) => ({
-      ...t,
-      rows: [...t.rows].sort(
-        (a, b) => direction * collator.compare(a[column] || '', b[column] || ''),
-      ),
-    }));
+    setTable((t) => {
+      const entries = t.rows.map((data, index) => ({
+        data,
+        id: t.rowIds?.[index] || crypto.randomUUID(),
+      }));
+      entries.sort(
+        (a, b) => direction * collator.compare(a.data[column] || '', b.data[column] || ''),
+      );
+      return { ...t, rows: entries.map((v) => v.data), rowIds: entries.map((v) => v.id) };
+    });
     setSort({ column, direction });
     setRow(0);
     setPage(0);
@@ -809,6 +828,7 @@ export default function App() {
   }
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      if (videoOpen) return;
       const target = e.target as HTMLElement;
       const typing = target.matches('input,textarea,select') || target.isContentEditable;
       const mod = e.ctrlKey || e.metaKey;
@@ -886,961 +906,1067 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-shell" data-ready={ready}>
-      <header className="app-header">
-        <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
-          <span className="brand-mark">
-            T<span>e</span>
-          </span>
-          <span>
-            TEditor2<span className="web-label">WEB</span>
-          </span>
-        </a>
-        <div className="file-title">
-          <input
-            aria-label="文件名"
-            value={filename}
-            onChange={(e) => {
-              setFilename(e.target.value);
-              setDirty(true);
-            }}
-          />
-          <span
-            className={dirty ? 'modified-dot' : 'saved-dot'}
-            title={dirty ? '有未保存更改' : '已保存'}
-          />
-          <span className="local-tag">
-            <span />
-            本地工作区
-          </span>
-        </div>
-        <div className="header-actions">
-          <button
-            className="icon-button"
-            title="使用帮助"
-            aria-label="使用帮助"
-            onClick={() => setModal('help')}
-          >
-            <HelpCircle size={18} />
-          </button>
-          <button className="secondary" onClick={saveTemplate}>
-            <Save size={15} />
-            保存模板
-          </button>
-          <button className="primary" onClick={openExport}>
-            <Download size={15} />
-            批量导出
-          </button>
-        </div>
-      </header>
-      <div className="toolbar">
-        <div className="toolbar-group">
-          <button onClick={newDocument}>
-            <FilePlus2 size={15} />
-            新建
-          </button>
-          <button onClick={() => openInput.current?.click()}>
-            <FolderOpen size={15} />
-            打开模板
-          </button>
-          <span className="separator" />
-          <button
-            onClick={() => {
-              setDataError('');
-              setModal('data');
-            }}
-          >
-            <Table2 size={15} />
-            导入数据
-          </button>
-          <button onClick={() => assetInput.current?.click()}>
-            <FolderInput size={15} />
-            关联素材目录
-          </button>
-          <span className="separator" />
-          <button
-            onClick={undo}
-            disabled={!history.current.past.length}
-            title="撤销 Ctrl/Cmd+Z"
-            aria-label="撤销"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            onClick={redo}
-            disabled={!history.current.future.length}
-            title="重做 Ctrl/Cmd+Shift+Z"
-            aria-label="重做"
-          >
-            <Redo2 size={16} />
-          </button>
-          <button
-            onClick={() => setShowHistory((v) => !v)}
-            className={showHistory ? 'active' : ''}
-            title="历史记录"
-            aria-label="历史记录"
-          >
-            <ChevronDown size={13} />
-          </button>
-        </div>
-        <div className="toolbar-group">
-          <button onClick={exportCurrent}>
-            <ArrowDownToLine size={15} />
-            导出当前
-          </button>
-          <span className="toolbar-caption">
-            {doc.DocModel.Width} × {doc.DocModel.Height} px
-          </span>
-        </div>
-      </div>
-      <main className="editor-main">
-        <aside className="layers-panel">
-          <div className="panel-heading">
+    <>
+      <div
+        className="app-shell"
+        data-ready={ready}
+        style={videoOpen ? { display: 'none' } : undefined}
+      >
+        <header className="app-header">
+          <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
+            <span className="brand-mark">Te</span>
             <span>
-              <Layers size={15} />
-              图层
+              TEditor2<span className="web-label">WEB</span>
             </span>
-            <span className="count">{doc.Layers.length}</span>
-          </div>
-          <div className="add-tools">
-            {(['Text', 'Image', 'Rectangle', 'Ellipse'] as LayerKey[]).map((key) => (
-              <button
-                key={key}
-                title={'添加' + typeNames[key]}
-                aria-label={'添加' + typeNames[key]}
-                onClick={() => addLayer(key)}
-              >
-                {layerIcon(key)}
-                <span>{typeNames[key]}</span>
-              </button>
-            ))}
-          </div>
-          <div className="layer-list">
-            {doc.Layers.map((layer, i) => {
-              const visible = resolved.document.Layers.find((l) => l.Id === layer.Id)?.Visible;
-              return (
-                <div
-                  key={layer.Id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={'选择图层 ' + layer.LayerNameCustom}
-                  aria-pressed={selected === layer.Id}
-                  className={
-                    'layer-row ' +
-                    (selected === layer.Id ? 'selected ' : '') +
-                    (!visible ? 'hidden-layer' : '')
-                  }
-                  draggable
-                  onDragStart={() => (draggedLayer.current = layer.Id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (draggedLayer.current) reorder(draggedLayer.current, i);
-                    draggedLayer.current = null;
-                  }}
-                  onClick={() => {
-                    setSelected(layer.Id);
-                    setTab('properties');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') setSelected(layer.Id);
-                  }}
-                >
-                  <GripVertical size={11} className="drag-grip" />
-                  {layer.ClippingMaskEnable && <span className="clip-mark">↳</span>}
-                  <span className="layer-symbol">{layerIcon(layer.Key)}</span>
-                  <span className="layer-name">
-                    {layer.LayerNameCustom || typeNames[layer.Key]}
-                  </span>
-                  {layer.PageBackground && (
-                    <span className="layer-background-tag" title="整页背景：每页一次，不随副本偏移">
-                      背景
-                    </span>
-                  )}
-                  <button
-                    className="icon-button visibility"
-                    aria-label={(visible ? '隐藏 ' : '显示 ') + layer.LayerNameCustom}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      visibility(layer.Id);
-                    }}
-                  >
-                    {visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                  </button>
-                </div>
-              );
-            })}
-            {!doc.Layers.length && (
-              <div className="empty-panel">
-                <Layers size={28} />
-                <p>开始你的第一个模板</p>
-                <span>点击上方工具添加图层</span>
-              </div>
-            )}
-          </div>
-          <div className="layer-actions">
-            <button
-              className="icon-button"
-              title="上移图层"
-              aria-label="上移图层"
-              disabled={
-                !selectedLayer ||
-                selectedLayerIndex <= 0 ||
-                doc.Layers[selectedLayerIndex - 1].PageBackground !== selectedLayer.PageBackground
-              }
-              onClick={() =>
-                selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) - 1)
-              }
-            >
-              <ArrowUp size={15} />
-            </button>
-            <button
-              className="icon-button"
-              title="下移图层"
-              aria-label="下移图层"
-              disabled={
-                !selectedLayer ||
-                selectedLayerIndex === doc.Layers.length - 1 ||
-                doc.Layers[selectedLayerIndex + 1].PageBackground !== selectedLayer.PageBackground
-              }
-              onClick={() =>
-                selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) + 1)
-              }
-            >
-              <ArrowDown size={15} />
-            </button>
-            <span />
-            <button
-              className="icon-button"
-              title="复制图层"
-              aria-label="复制图层"
-              disabled={!selectedLayer}
-              onClick={duplicate}
-            >
-              <Copy size={15} />
-            </button>
-            <button
-              className="icon-button"
-              title="删除图层"
-              aria-label="删除图层"
-              disabled={!selectedLayer}
-              onClick={() => deleteLayer()}
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
-          <div className="asset-summary">
-            <FolderInput size={14} />
-            <span>{assets.current.files.size} 个本地素材</span>
-            <button className="text-action" onClick={() => assetInput.current?.click()}>
-              关联
-            </button>
-          </div>
-        </aside>
-        <div className="center-panel">
-          <div className="canvas-topline">
-            <span>
-              <span className="canvas-status-dot" />
-              画布预览
-            </span>
-            <span>
-              {table.rows.length ? `数据行 ${row + 1} / ${table.rows.length}` : '自由编辑'}
-              {Object.keys(manual).length ? ' · 手动条件' : ''}
+          </a>
+          <div className="file-title">
+            <input
+              aria-label="文件名"
+              value={filename}
+              onChange={(e) => {
+                setFilename(e.target.value);
+                setDirty(true);
+              }}
+            />
+            <span
+              className={dirty ? 'modified-dot' : 'saved-dot'}
+              title={dirty ? '有未保存更改' : '已保存'}
+            />
+            <span className="local-tag">
+              <span />
+              本地工作区
             </span>
           </div>
-          <div
-            ref={workspaceRef}
-            className={'workspace ' + (hand ? 'hand-mode' : '')}
-            onPointerDown={(e) => startPointer(e)}
-            onPointerMove={movePointer}
-            onPointerUp={endPointer}
-            onPointerCancel={endPointer}
-          >
-            <div
-              className="canvas-wrapper"
-              style={{
-                width: doc.DocModel.Width,
-                height: doc.DocModel.Height,
-                transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          <div className="header-actions">
+            <button
+              className="secondary"
+              disabled={!ready}
+              onClick={() => {
+                setVideoStarted(true);
+                setVideoOpen(true);
               }}
             >
-              <canvas aria-label="模板画布" ref={canvasRef} />
-              {selectedBounds && (
-                <div
-                  className="selection-box"
-                  style={{
-                    left: selectedBounds.x,
-                    top: selectedBounds.y,
-                    width: selectedBounds.width,
-                    height: selectedBounds.height,
-                    borderWidth: 1 / zoom,
-                  }}
+              <Film size={15} />
+              视频剪辑
+            </button>
+            <button
+              className="icon-button"
+              title="使用帮助"
+              aria-label="使用帮助"
+              onClick={() => setModal('help')}
+            >
+              <HelpCircle size={18} />
+            </button>
+            <button className="secondary" onClick={saveTemplate}>
+              <Save size={15} />
+              保存模板
+            </button>
+            <button className="primary" onClick={openExport}>
+              <Download size={15} />
+              批量导出
+            </button>
+          </div>
+        </header>
+        <div className="toolbar">
+          <div className="toolbar-group">
+            <button onClick={newDocument}>
+              <FilePlus2 size={15} />
+              新建
+            </button>
+            <button onClick={() => openInput.current?.click()}>
+              <FolderOpen size={15} />
+              打开模板
+            </button>
+            <span className="separator" />
+            <button
+              onClick={() => {
+                setDataError('');
+                setModal('data');
+              }}
+            >
+              <Table2 size={15} />
+              导入数据
+            </button>
+            <button onClick={() => assetInput.current?.click()}>
+              <FolderInput size={15} />
+              关联素材目录
+            </button>
+            <span className="separator" />
+            <button
+              onClick={undo}
+              disabled={!history.current.past.length}
+              title="撤销 Ctrl/Cmd+Z"
+              aria-label="撤销"
+            >
+              <Undo2 size={16} />
+            </button>
+            <button
+              onClick={redo}
+              disabled={!history.current.future.length}
+              title="重做 Ctrl/Cmd+Shift+Z"
+              aria-label="重做"
+            >
+              <Redo2 size={16} />
+            </button>
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              className={showHistory ? 'active' : ''}
+              title="历史记录"
+              aria-label="历史记录"
+            >
+              <ChevronDown size={13} />
+            </button>
+          </div>
+          <div className="toolbar-group">
+            <button onClick={exportCurrent}>
+              <ArrowDownToLine size={15} />
+              导出当前
+            </button>
+            <span className="toolbar-caption">
+              {doc.DocModel.Width} × {doc.DocModel.Height} px
+            </span>
+          </div>
+        </div>
+        <main className="editor-main">
+          <aside className="layers-panel">
+            <div className="panel-heading">
+              <span>
+                <Layers size={15} />
+                图层
+              </span>
+              <span className="count">{doc.Layers.length}</span>
+            </div>
+            <div className="add-tools">
+              {(['Text', 'Image', 'Rectangle', 'Ellipse'] as LayerKey[]).map((key) => (
+                <button
+                  key={key}
+                  title={'添加' + typeNames[key]}
+                  aria-label={'添加' + typeNames[key]}
+                  onClick={() => addLayer(key)}
                 >
-                  {['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((handle) => (
-                    <div
-                      key={handle}
-                      role="button"
-                      aria-label={'缩放 ' + handle}
-                      className={'resize-handle ' + handle}
-                      style={{ width: 7 / zoom, height: 7 / zoom, borderWidth: 1 / zoom }}
-                      onPointerDown={(e) => {
+                  {layerIcon(key)}
+                  <span>{typeNames[key]}</span>
+                </button>
+              ))}
+            </div>
+            <div className="layer-list">
+              {doc.Layers.map((layer, i) => {
+                const visible = resolved.document.Layers.find((l) => l.Id === layer.Id)?.Visible;
+                return (
+                  <div
+                    key={layer.Id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={'选择图层 ' + layer.LayerNameCustom}
+                    aria-pressed={selected === layer.Id}
+                    className={
+                      'layer-row ' +
+                      (selected === layer.Id ? 'selected ' : '') +
+                      (!visible ? 'hidden-layer' : '')
+                    }
+                    draggable
+                    onDragStart={() => (draggedLayer.current = layer.Id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggedLayer.current) reorder(draggedLayer.current, i);
+                      draggedLayer.current = null;
+                    }}
+                    onClick={() => {
+                      setSelected(layer.Id);
+                      setTab('properties');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setSelected(layer.Id);
+                    }}
+                  >
+                    <GripVertical size={11} className="drag-grip" />
+                    {layer.ClippingMaskEnable && <span className="clip-mark">↳</span>}
+                    <span className="layer-symbol">{layerIcon(layer.Key)}</span>
+                    <span className="layer-name">
+                      {layer.LayerNameCustom || typeNames[layer.Key]}
+                    </span>
+                    {layer.PageBackground && (
+                      <span
+                        className="layer-background-tag"
+                        title="整页背景：每页一次，不随副本偏移"
+                      >
+                        背景
+                      </span>
+                    )}
+                    <button
+                      className="icon-button visibility"
+                      aria-label={(visible ? '隐藏 ' : '显示 ') + layer.LayerNameCustom}
+                      onClick={(e) => {
                         e.stopPropagation();
-                        startPointer(e, handle);
+                        visibility(layer.Id);
                       }}
-                      onPointerMove={movePointer}
-                      onPointerUp={endPointer}
-                    />
-                  ))}
+                    >
+                      {visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                  </div>
+                );
+              })}
+              {!doc.Layers.length && (
+                <div className="empty-panel">
+                  <Layers size={28} />
+                  <p>开始你的第一个模板</p>
+                  <span>点击上方工具添加图层</span>
                 </div>
               )}
             </div>
-            <div className="canvas-controls" onPointerDown={(e) => e.stopPropagation()}>
+            <div className="layer-actions">
               <button
                 className="icon-button"
-                aria-label="缩小"
-                onClick={() => setZoom((z) => Math.max(0.05, z / 1.2))}
+                title="上移图层"
+                aria-label="上移图层"
+                disabled={
+                  !selectedLayer ||
+                  selectedLayerIndex <= 0 ||
+                  doc.Layers[selectedLayerIndex - 1].PageBackground !== selectedLayer.PageBackground
+                }
+                onClick={() =>
+                  selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) - 1)
+                }
               >
-                <Minus size={15} />
+                <ArrowUp size={15} />
               </button>
-              <input
-                aria-label="画布缩放百分比"
-                type="number"
-                min={5}
-                max={400}
-                value={Math.round(zoom * 100)}
-                onChange={(e) => setZoom(Math.max(0.05, Math.min(4, Number(e.target.value) / 100)))}
-              />
-              <span>%</span>
               <button
                 className="icon-button"
-                aria-label="放大"
-                onClick={() => setZoom((z) => Math.min(4, z * 1.2))}
+                title="下移图层"
+                aria-label="下移图层"
+                disabled={
+                  !selectedLayer ||
+                  selectedLayerIndex === doc.Layers.length - 1 ||
+                  doc.Layers[selectedLayerIndex + 1].PageBackground !== selectedLayer.PageBackground
+                }
+                onClick={() =>
+                  selected && reorder(selected, doc.Layers.findIndex((l) => l.Id === selected) + 1)
+                }
               >
-                <Plus size={15} />
+                <ArrowDown size={15} />
               </button>
-              <span className="separator" />
-              <button className="icon-button" aria-label="适应画布" title="适应画布" onClick={fit}>
-                <Maximize size={15} />
+              <span />
+              <button
+                className="icon-button"
+                title="复制图层"
+                aria-label="复制图层"
+                disabled={!selectedLayer}
+                onClick={duplicate}
+              >
+                <Copy size={15} />
+              </button>
+              <button
+                className="icon-button"
+                title="删除图层"
+                aria-label="删除图层"
+                disabled={!selectedLayer}
+                onClick={() => deleteLayer()}
+              >
+                <Trash2 size={15} />
               </button>
             </div>
-            <div className="canvas-hint">空格拖动画布 · Alt + 滚轮缩放</div>
-          </div>
-          <div className="data-panel">
-            <div className="data-heading">
-              <button className="plain" onClick={() => setDataVisible((v) => !v)}>
-                <Table2 size={15} />
-                <b>数据源</b>
-                <span className="count">{table.rows.length} 行</span>
-                {dataVisible ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            <div className="asset-summary">
+              <FolderInput size={14} />
+              <span>{assets.current.files.size} 个本地素材</span>
+              <button className="text-action" onClick={() => assetInput.current?.click()}>
+                关联
               </button>
-              <div>
-                <button
-                  className="text-action"
-                  onClick={() => {
-                    setDataError('');
-                    setModal('data');
-                  }}
-                >
-                  替换数据
-                </button>
-                <button className="text-action" onClick={() => csvInput.current?.click()}>
-                  导入 CSV
-                </button>
-                <button
-                  className="text-action"
-                  onClick={() => {
-                    const headers = table.headers.length ? table.headers : ['名称'];
-                    setTable((t) => ({
-                      headers,
-                      rows: [...t.rows, Object.fromEntries(headers.map((h) => [h, '']))],
-                    }));
-                    selectRow(table.rows.length);
-                  }}
-                >
-                  ＋ 添加行
-                </button>
-              </div>
             </div>
-            {dataVisible && (
-              <>
-                <div className="data-scroll">
-                  {table.headers.length ? (
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          {table.headers.map((h) => (
-                            <th key={h}>
-                              <button
-                                className="column-sort"
-                                aria-label={'排序 ' + h}
-                                onClick={() => sortData(h)}
-                              >
-                                {h}
-                                {sort?.column === h ? (sort.direction > 0 ? ' ↑' : ' ↓') : ''}
-                              </button>
-                            </th>
-                          ))}
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {table.rows.slice(page * 50, page * 50 + 50).map((record, j) => {
-                          const i = page * 50 + j;
-                          return (
-                            <tr
-                              key={i}
-                              className={row === i ? 'current-row' : ''}
-                              onClick={() => selectRow(i)}
-                            >
-                              <td>
-                                <button
-                                  className="row-number"
-                                  aria-label={'预览第 ' + (i + 1) + ' 行'}
-                                  onClick={() => selectRow(i)}
-                                >
-                                  {row === i ? <span className="row-indicator" /> : null}
-                                  {i + 1}
-                                </button>
-                              </td>
-                              {table.headers.map((h) => (
-                                <td key={h}>
-                                  <input
-                                    aria-label={`第${i + 1}行 ${h}`}
-                                    value={record[h] ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setTable((t) => ({
-                                        ...t,
-                                        rows: t.rows.map((r, k) =>
-                                          k === i ? { ...r, [h]: value } : r,
-                                        ),
-                                      }));
-                                    }}
-                                  />
-                                </td>
-                              ))}
-                              <td>
-                                <button
-                                  className="icon-button"
-                                  aria-label={'删除第 ' + (i + 1) + ' 行'}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTable((t) => ({
-                                      ...t,
-                                      rows: t.rows.filter((_, k) => k !== i),
-                                    }));
-                                    setRow((r) => Math.max(0, Math.min(r, table.rows.length - 2)));
-                                    setPage((p) =>
-                                      Math.min(
-                                        p,
-                                        Math.max(0, Math.ceil((table.rows.length - 1) / 50) - 1),
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="empty-data">
-                      <FileSpreadsheet size={28} />
-                      <span>粘贴 Excel 表格，或导入 CSV 开始批量生成</span>
-                      <button className="secondary" onClick={() => setModal('data')}>
-                        导入数据
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="data-footer">
-                  <span>点击行切换预览 · 双击内容可编辑</span>
-                  <div>
-                    <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                      上一页
-                    </button>
-                    <span>
-                      {page + 1} / {Math.max(1, Math.ceil(table.rows.length / 50))}
-                    </span>
-                    <button
-                      disabled={(page + 1) * 50 >= table.rows.length}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      下一页
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        <aside className="inspector">
-          <div className="inspector-tabs">
-            <button
-              className={tab === 'properties' ? 'active' : ''}
-              onClick={() => setTab('properties')}
+          </aside>
+          <div className="center-panel">
+            <div className="canvas-topline">
+              <span>
+                <span className="canvas-status-dot" />
+                画布预览
+              </span>
+              <span>
+                {table.rows.length ? `数据行 ${row + 1} / ${table.rows.length}` : '自由编辑'}
+                {Object.keys(manual).length ? ' · 手动条件' : ''}
+              </span>
+            </div>
+            <div
+              ref={workspaceRef}
+              className={'workspace ' + (hand ? 'hand-mode' : '')}
+              onPointerDown={(e) => startPointer(e)}
+              onPointerMove={movePointer}
+              onPointerUp={endPointer}
+              onPointerCancel={endPointer}
             >
-              <Settings2 size={14} />
-              属性
-            </button>
-            <button
-              className={tab === 'conditions' ? 'active' : ''}
-              onClick={() => setTab('conditions')}
-            >
-              <SlidersHorizontal size={14} />
-              条件组
-            </button>
-          </div>
-          <div className="inspector-content">
-            {tab === 'conditions' ? (
-              <Conditions
-                document={doc}
-                selectedConditions={manual}
-                matchedConditions={resolved.matchedConditions}
-                onChange={replaceDocument}
-                onSelect={setManual}
-              />
-            ) : selectedLayer ? (
-              <Properties
-                key={selectedLayer.Id}
-                layer={{
-                  ...selectedLayer,
-                  Visible:
-                    resolved.document.Layers.find((l) => l.Id === selected)?.Visible ??
-                    selectedLayer.Visible,
+              <div
+                className="canvas-wrapper"
+                style={{
+                  width: doc.DocModel.Width,
+                  height: doc.DocModel.Height,
+                  transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 }}
-                onChange={patchLayer}
-                onData={patchData}
-                fonts={fonts}
-                fontStatus={fontStatus}
-                onFont={() => fontInput.current?.click()}
-                onReadLocalFonts={localFonts}
-                onImage={() => imageInput.current?.click()}
-              />
-            ) : (
-              <div className="properties">
-                <section>
-                  <div className="section-label">文档设置</div>
-                  <div className="field-grid">
-                    <NumberField
-                      label="画布宽度"
-                      value={doc.DocModel.Width}
-                      min={1}
-                      max={8192}
-                      onChange={(v) => {
-                        if (v * doc.DocModel.Height > 64000000) {
-                          notice('画布不能超过 6400 万像素');
-                          return;
-                        }
-                        mutate((d) => (d.DocModel.Width = Math.round(v)), '设置画布宽度', true);
-                      }}
-                    />
-                    <NumberField
-                      label="画布高度"
-                      value={doc.DocModel.Height}
-                      min={1}
-                      max={8192}
-                      onChange={(v) => {
-                        if (v * doc.DocModel.Width > 64000000) {
-                          notice('画布不能超过 6400 万像素');
-                          return;
-                        }
-                        mutate((d) => (d.DocModel.Height = Math.round(v)), '设置画布高度', true);
-                      }}
-                    />
-                  </div>
-                  <div className="document-preview">
-                    <span>
-                      {doc.DocModel.Width} × {doc.DocModel.Height}
-                    </span>
-                    <small>透明背景 · PNG</small>
-                  </div>
-                </section>
-                <section>
-                  <div className="section-label">字体与素材</div>
-                  <button className="secondary full" onClick={localFonts}>
-                    读取本机字体
-                  </button>
-                  <button className="secondary full" onClick={() => fontInput.current?.click()}>
-                    导入字体文件
-                  </button>
-                  <p className="hint">{fontStatus}</p>
-                  <p className="hint">
-                    字体、图片和数据在本机处理。旧模板的图片路径可通过关联素材目录恢复。
-                  </p>
-                </section>
-                <section>
-                  <div className="section-label">开始创作</div>
-                  <p className="hint">选择画布上的元素或左侧图层，即可修改文字、图片和样式。</p>
-                  <button className="secondary full" onClick={loadDemo}>
-                    载入演示模板
-                  </button>
-                </section>
-              </div>
-            )}
-          </div>
-          <div className="inspector-foot">
-            <span className="privacy-dot" />
-            文件仅保存在你的设备上
-          </div>
-        </aside>
-      </main>
-      <footer className="statusbar">
-        <span>
-          <Check size={12} />
-          {saving}
-        </span>
-        <span>
-          {warnings.length > 0 && (
-            <button className="warning-button" onClick={() => setWarningsOpen((v) => !v)}>
-              <AlertCircle size={13} />
-              {warnings.length} 条提示
-            </button>
-          )}
-          <span>
-            {selectedLayer
-              ? `${typeNames[selectedLayer.Key]} · ${selectedLayer.LayerNameCustom}`
-              : '未选择图层'}
-          </span>
-          <span className="version">TEditor2 1.0</span>
-        </span>
-      </footer>
-      {toast && (
-        <div role="status" className="toast">
-          <Check size={16} />
-          <span>{toast}</span>
-          <button className="icon-button" aria-label="关闭消息" onClick={() => setToast('')}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
-      {warningsOpen && (
-        <div className="floating-panel warnings">
-          <div className="section-label">
-            素材与渲染提示
-            <button className="icon-button" onClick={() => setWarningsOpen(false)}>
-              <X size={14} />
-            </button>
-          </div>
-          {warnings.map((w) => (
-            <p key={w}>{w}</p>
-          ))}
-        </div>
-      )}
-      {showHistory && (
-        <div className="floating-panel history" data-revision={historyRevision}>
-          <div className="section-label">
-            操作历史
-            <button className="icon-button" onClick={() => setShowHistory(false)}>
-              <X size={14} />
-            </button>
-          </div>
-          {history.current.past.length ? (
-            [...history.current.past].reverse().map((h, i) => (
-              <div key={i}>
-                {i === 0 ? <span className="history-dot" /> : <span className="history-empty" />}
-                {h.label}
-              </div>
-            ))
-          ) : (
-            <p className="hint">还没有编辑操作</p>
-          )}
-        </div>
-      )}
-      {modal && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget && !progress) setModal(null);
-          }}
-        >
-          <div
-            className={'modal ' + (modal === 'export' ? 'export-modal' : '')}
-            role="dialog"
-            aria-modal="true"
-            aria-label={
-              modal === 'data' ? '导入数据' : modal === 'export' ? '批量导出' : '使用帮助'
-            }
-          >
-            <div className="modal-title">
-              <h2>
-                {modal === 'data'
-                  ? '导入数据'
-                  : modal === 'export'
-                    ? '批量导出'
-                    : '欢迎使用 TEditor2'}
-              </h2>
-              <button
-                disabled={!!progress}
-                className="icon-button"
-                aria-label="关闭对话框"
-                onClick={() => setModal(null)}
               >
-                <X size={20} />
-              </button>
-            </div>
-            {modal === 'data' && (
-              <>
-                <p className="muted">
-                  从 Excel 复制包含标题行的表格，粘贴到下方。也可导入 CSV / TSV 文件。
-                </p>
-                <textarea
-                  className="data-paste"
-                  aria-label="粘贴表格数据"
-                  placeholder={'名称\t得分\t图片\n林间来信\t98.6\tavatars/01.png'}
-                  value={dataText}
-                  onChange={(e) => setDataText(e.target.value)}
-                />
-                {dataError && <p className="error-message">{dataError}</p>}
-                <div className="modal-actions">
-                  <button className="secondary" onClick={() => csvInput.current?.click()}>
-                    <FolderOpen size={15} />
-                    选择 CSV / TSV
-                  </button>
-                  <button className="primary" onClick={pasteData}>
-                    导入表格
-                  </button>
-                </div>
-              </>
-            )}
-            {modal === 'export' && (
-              <>
-                <p className="muted">
-                  以文档尺寸生成透明 PNG。当前数据源共 {Math.max(1, table.rows.length)} 行。
-                </p>
-                <div className="export-layout">
-                  <fieldset className="export-settings" disabled={!!progress}>
-                    <label className="field">
-                      <span>文件名模板</span>
-                      <input
-                        aria-label="导出文件名模板"
-                        value={exportOptions.filename}
-                        onChange={(e) =>
-                          setExportOptions((o) => ({ ...o, filename: e.target.value }))
-                        }
+                <canvas aria-label="模板画布" ref={canvasRef} />
+                {selectedBounds && (
+                  <div
+                    className="selection-box"
+                    style={{
+                      left: selectedBounds.x,
+                      top: selectedBounds.y,
+                      width: selectedBounds.width,
+                      height: selectedBounds.height,
+                      borderWidth: 1 / zoom,
+                    }}
+                  >
+                    {['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((handle) => (
+                      <div
+                        key={handle}
+                        role="button"
+                        aria-label={'缩放 ' + handle}
+                        className={'resize-handle ' + handle}
+                        style={{ width: 7 / zoom, height: 7 / zoom, borderWidth: 1 / zoom }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          startPointer(e, handle);
+                        }}
+                        onPointerMove={movePointer}
+                        onPointerUp={endPointer}
                       />
-                      <small>
-                        支持 {'{index}'} 和 {'{列名}'}，自动添加 .png
-                      </small>
-                    </label>
-                    <div className="field-grid">
-                      <NumberField
-                        label="起始行"
-                        value={exportOptions.start}
-                        min={1}
-                        onChange={(v) => setExportOptions((o) => ({ ...o, start: v }))}
-                      />
-                      <NumberField
-                        label="结束行"
-                        value={exportOptions.end}
-                        min={1}
-                        onChange={(v) => setExportOptions((o) => ({ ...o, end: v }))}
-                      />
-                    </div>
-                    <div className="export-repeat">
-                      <div className="section-label">同页重复排版</div>
-                      <NumberField
-                        label="额外副本数"
-                        value={exportOptions.repeats}
-                        min={0}
-                        max={500}
-                        onChange={(v) => setExportOptions((o) => ({ ...o, repeats: v }))}
-                      />
-                      <div className="field-grid">
-                        <NumberField
-                          label="X 偏移"
-                          value={exportOptions.deltaX}
-                          onChange={(v) => setExportOptions((o) => ({ ...o, deltaX: v }))}
-                        />
-                        <NumberField
-                          label="Y 偏移"
-                          value={exportOptions.deltaY}
-                          onChange={(v) => setExportOptions((o) => ({ ...o, deltaY: v }))}
-                        />
-                      </div>
-                      <p className="hint">
-                        副本数为 2 时，每张图放入连续 3 行数据；画布大小保持不变。
-                      </p>
-                    </div>
-                    <label className="field">
-                      <span>保存方式</span>
-                      <select
-                        aria-label="保存方式"
-                        value={exportOptions.mode}
-                        onChange={(e) => setExportOptions((o) => ({ ...o, mode: e.target.value }))}
-                      >
-                        <option value="directory">写入本地目录（推荐）</option>
-                        <option value="zip">ZIP 下载（每包最多 50 张）</option>
-                      </select>
-                    </label>
-                  </fieldset>
-                  <BatchPreview
-                    document={doc}
-                    table={table}
-                    plans={exportPlan.plans}
-                    error={exportPlan.error}
-                    deltaX={exportOptions.deltaX}
-                    deltaY={exportOptions.deltaY}
-                    resolveImage={assets.current.resolve}
-                    assetRevision={assetRevision}
-                    fonts={fonts}
-                    disabled={!!progress}
-                  />
-                </div>
-                {progress && (
-                  <div className="progress">
-                    <div>
-                      <span>正在生成图片</span>
-                      <b>
-                        {progress.done} / {progress.total || '…'}
-                      </b>
-                    </div>
-                    <progress value={progress.done} max={progress.total || 1} />
-                  </div>
-                )}
-                {exportMessage && (
-                  <p role="status" className="export-message">
-                    {exportMessage}
-                  </p>
-                )}
-                {archives.length > 0 && (
-                  <div className="archive-list">
-                    {archives.map((a) => (
-                      <a key={a.url} href={a.url} download={a.name}>
-                        <Download size={14} />
-                        {a.name}
-                        <span>{(a.size / 1024 / 1024).toFixed(1)} MB</span>
-                      </a>
                     ))}
                   </div>
                 )}
-                <div className="modal-actions">
-                  <span className="hint">同名文件会自动编号，不覆盖已有图片。</span>
-                  {progress ? (
-                    <button className="secondary" onClick={() => exportAbort.current?.abort()}>
-                      取消导出
-                    </button>
-                  ) : (
-                    <button className="primary" onClick={batchExport} disabled={!!exportPlan.error}>
-                      <Download size={15} />
-                      开始导出
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-            {modal === 'help' && (
-              <>
-                <p className="muted">
-                  一个在浏览器中运行的模板图片编辑器。通过表格数据，让同一份设计生成不同内容。
-                </p>
-                <ol className="help-steps">
-                  <li>
-                    <b>设计模板</b>
-                    <span>添加文字、图片、图形，设置描边、阴影或剪贴蒙版。</span>
-                  </li>
-                  <li>
-                    <b>连接数据</b>
-                    <span>粘贴 Excel 或导入 CSV，在文字和图片地址中使用 {'{列名}'}。</span>
-                  </li>
-                  <li>
-                    <b>批量生成</b>
-                    <span>用条件组切换元素，再将 PNG 保存到本地目录。</span>
-                  </li>
-                </ol>
-                <div className="shortcuts">
-                  <span>撤销 / 重做</span>
-                  <kbd>⌘ / Ctrl + Z / Shift + Z</kbd>
-                  <span>复制图层</span>
-                  <kbd>⌘ / Ctrl + D</kbd>
-                  <span>移动图层</span>
-                  <kbd>方向键 · Shift 加速</kbd>
-                  <span>移动画布</span>
-                  <kbd>空格 + 拖动</kbd>
-                  <span>缩放画布</span>
-                  <kbd>Alt + 滚轮</kbd>
-                </div>
-                <p className="hint">
-                  支持旧版 .ted。Windows 字体在其他系统可能需要导入。批量任务运行时请保持页面打开。
-                </p>
-                <div className="modal-actions">
+              </div>
+              <div className="canvas-controls" onPointerDown={(e) => e.stopPropagation()}>
+                <button
+                  className="icon-button"
+                  aria-label="缩小"
+                  onClick={() => setZoom((z) => Math.max(0.05, z / 1.2))}
+                >
+                  <Minus size={15} />
+                </button>
+                <input
+                  aria-label="画布缩放百分比"
+                  type="number"
+                  min={5}
+                  max={400}
+                  value={Math.round(zoom * 100)}
+                  onChange={(e) =>
+                    setZoom(Math.max(0.05, Math.min(4, Number(e.target.value) / 100)))
+                  }
+                />
+                <span>%</span>
+                <button
+                  className="icon-button"
+                  aria-label="放大"
+                  onClick={() => setZoom((z) => Math.min(4, z * 1.2))}
+                >
+                  <Plus size={15} />
+                </button>
+                <span className="separator" />
+                <button
+                  className="icon-button"
+                  aria-label="适应画布"
+                  title="适应画布"
+                  onClick={fit}
+                >
+                  <Maximize size={15} />
+                </button>
+              </div>
+              <div className="canvas-hint">空格拖动画布 · Alt + 滚轮缩放</div>
+            </div>
+            <div className="data-panel">
+              <div className="data-heading">
+                <button className="plain" onClick={() => setDataVisible((v) => !v)}>
+                  <Table2 size={15} />
+                  <b>数据源</b>
+                  <span className="count">{table.rows.length} 行</span>
+                  {dataVisible ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                <div>
                   <button
-                    className="secondary"
+                    className="text-action"
                     onClick={() => {
-                      setModal(null);
-                      void loadDemo();
+                      setDataError('');
+                      setModal('data');
                     }}
                   >
-                    载入演示模板
+                    替换数据
                   </button>
-                  <button className="primary" onClick={() => setModal(null)}>
-                    开始创作
+                  <button className="text-action" onClick={() => csvInput.current?.click()}>
+                    导入 CSV
+                  </button>
+                  <button
+                    className="text-action"
+                    onClick={() => {
+                      const headers = table.headers.length ? table.headers : ['名称'];
+                      setTable((t) => ({
+                        headers,
+                        rows: [...t.rows, Object.fromEntries(headers.map((h) => [h, '']))],
+                        rowIds: [
+                          ...(t.rowIds || t.rows.map(() => crypto.randomUUID())),
+                          crypto.randomUUID(),
+                        ],
+                      }));
+                      selectRow(table.rows.length);
+                    }}
+                  >
+                    ＋ 添加行
                   </button>
                 </div>
-              </>
+              </div>
+              {dataVisible && (
+                <>
+                  <div className="data-scroll">
+                    {table.headers.length ? (
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            {table.headers.map((h) => (
+                              <th key={h}>
+                                <button
+                                  className="column-sort"
+                                  aria-label={'排序 ' + h}
+                                  onClick={() => sortData(h)}
+                                >
+                                  {h}
+                                  {sort?.column === h ? (sort.direction > 0 ? ' ↑' : ' ↓') : ''}
+                                </button>
+                              </th>
+                            ))}
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {table.rows.slice(page * 50, page * 50 + 50).map((record, j) => {
+                            const i = page * 50 + j;
+                            return (
+                              <tr
+                                key={i}
+                                className={row === i ? 'current-row' : ''}
+                                onClick={() => selectRow(i)}
+                              >
+                                <td>
+                                  <button
+                                    className="row-number"
+                                    aria-label={'预览第 ' + (i + 1) + ' 行'}
+                                    onClick={() => selectRow(i)}
+                                  >
+                                    {row === i ? <span className="row-indicator" /> : null}
+                                    {i + 1}
+                                  </button>
+                                </td>
+                                {table.headers.map((h) => (
+                                  <td key={h}>
+                                    <input
+                                      aria-label={`第${i + 1}行 ${h}`}
+                                      value={record[h] ?? ''}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setTable((t) => ({
+                                          ...t,
+                                          rows: t.rows.map((r, k) =>
+                                            k === i ? { ...r, [h]: value } : r,
+                                          ),
+                                        }));
+                                      }}
+                                    />
+                                  </td>
+                                ))}
+                                <td>
+                                  <button
+                                    className="icon-button"
+                                    aria-label={'删除第 ' + (i + 1) + ' 行'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTable((t) => ({
+                                        ...t,
+                                        rows: t.rows.filter((_, k) => k !== i),
+                                        rowIds: t.rowIds?.filter((_, k) => k !== i),
+                                      }));
+                                      setRow((r) =>
+                                        Math.max(0, Math.min(r, table.rows.length - 2)),
+                                      );
+                                      setPage((p) =>
+                                        Math.min(
+                                          p,
+                                          Math.max(0, Math.ceil((table.rows.length - 1) / 50) - 1),
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="empty-data">
+                        <FileSpreadsheet size={28} />
+                        <span>粘贴 Excel 表格，或导入 CSV 开始批量生成</span>
+                        <button className="secondary" onClick={() => setModal('data')}>
+                          导入数据
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="data-footer">
+                    <span>点击行切换预览 · 双击内容可编辑</span>
+                    <div>
+                      <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                        上一页
+                      </button>
+                      <span>
+                        {page + 1} / {Math.max(1, Math.ceil(table.rows.length / 50))}
+                      </span>
+                      <button
+                        disabled={(page + 1) * 50 >= table.rows.length}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        下一页
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <aside className="inspector">
+            <div className="inspector-tabs">
+              <button
+                className={tab === 'properties' ? 'active' : ''}
+                onClick={() => setTab('properties')}
+              >
+                <Settings2 size={14} />
+                属性
+              </button>
+              <button
+                className={tab === 'conditions' ? 'active' : ''}
+                onClick={() => setTab('conditions')}
+              >
+                <SlidersHorizontal size={14} />
+                条件组
+              </button>
+            </div>
+            <div className="inspector-content">
+              {tab === 'conditions' ? (
+                <Conditions
+                  document={doc}
+                  selectedConditions={manual}
+                  matchedConditions={resolved.matchedConditions}
+                  onChange={replaceDocument}
+                  onSelect={setManual}
+                />
+              ) : selectedLayer ? (
+                <Properties
+                  key={selectedLayer.Id}
+                  layer={{
+                    ...selectedLayer,
+                    Visible:
+                      resolved.document.Layers.find((l) => l.Id === selected)?.Visible ??
+                      selectedLayer.Visible,
+                  }}
+                  onChange={patchLayer}
+                  onData={patchData}
+                  fonts={fonts}
+                  fontStatus={fontStatus}
+                  onFont={() => fontInput.current?.click()}
+                  onReadLocalFonts={localFonts}
+                  onImage={() => imageInput.current?.click()}
+                />
+              ) : (
+                <div className="properties">
+                  <section>
+                    <div className="section-label">文档设置</div>
+                    <div className="field-grid">
+                      <NumberField
+                        label="画布宽度"
+                        value={doc.DocModel.Width}
+                        min={1}
+                        max={8192}
+                        onChange={(v) => {
+                          if (v * doc.DocModel.Height > 64000000) {
+                            notice('画布不能超过 6400 万像素');
+                            return;
+                          }
+                          mutate((d) => (d.DocModel.Width = Math.round(v)), '设置画布宽度', true);
+                        }}
+                      />
+                      <NumberField
+                        label="画布高度"
+                        value={doc.DocModel.Height}
+                        min={1}
+                        max={8192}
+                        onChange={(v) => {
+                          if (v * doc.DocModel.Width > 64000000) {
+                            notice('画布不能超过 6400 万像素');
+                            return;
+                          }
+                          mutate((d) => (d.DocModel.Height = Math.round(v)), '设置画布高度', true);
+                        }}
+                      />
+                    </div>
+                    <div className="document-preview">
+                      <span>
+                        {doc.DocModel.Width} × {doc.DocModel.Height}
+                      </span>
+                      <small>透明背景 · PNG</small>
+                    </div>
+                  </section>
+                  <section>
+                    <div className="section-label">字体与素材</div>
+                    <button className="secondary full" onClick={localFonts}>
+                      读取本机字体
+                    </button>
+                    <button className="secondary full" onClick={() => fontInput.current?.click()}>
+                      导入字体文件
+                    </button>
+                    <p className="hint">{fontStatus}</p>
+                    <p className="hint">
+                      字体、图片和数据在本机处理。旧模板的图片路径可通过关联素材目录恢复。
+                    </p>
+                  </section>
+                  <section>
+                    <div className="section-label">开始创作</div>
+                    <p className="hint">选择画布上的元素或左侧图层，即可修改文字、图片和样式。</p>
+                    <button className="secondary full" onClick={loadDemo}>
+                      载入演示模板
+                    </button>
+                  </section>
+                </div>
+              )}
+            </div>
+            <div className="inspector-foot">
+              <span className="privacy-dot" />
+              文件仅保存在你的设备上
+            </div>
+          </aside>
+        </main>
+        <footer className="statusbar">
+          <span>
+            <Check size={12} />
+            {saving}
+          </span>
+          <span>
+            {warnings.length > 0 && (
+              <button className="warning-button" onClick={() => setWarningsOpen((v) => !v)}>
+                <AlertCircle size={13} />
+                {warnings.length} 条提示
+              </button>
+            )}
+            <span>
+              {selectedLayer
+                ? `${typeNames[selectedLayer.Key]} · ${selectedLayer.LayerNameCustom}`
+                : '未选择图层'}
+            </span>
+            <span className="version">TEditor2 1.0</span>
+            <SiteCredits />
+          </span>
+        </footer>
+        {toast && (
+          <div role="status" className="toast">
+            <Check size={16} />
+            <span>{toast}</span>
+            <button className="icon-button" aria-label="关闭消息" onClick={() => setToast('')}>
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        {warningsOpen && (
+          <div className="floating-panel warnings">
+            <div className="section-label">
+              素材与渲染提示
+              <button className="icon-button" onClick={() => setWarningsOpen(false)}>
+                <X size={14} />
+              </button>
+            </div>
+            {warnings.map((w) => (
+              <p key={w}>{w}</p>
+            ))}
+          </div>
+        )}
+        {showHistory && (
+          <div className="floating-panel history" data-revision={historyRevision}>
+            <div className="section-label">
+              操作历史
+              <button className="icon-button" onClick={() => setShowHistory(false)}>
+                <X size={14} />
+              </button>
+            </div>
+            {history.current.past.length ? (
+              [...history.current.past].reverse().map((h, i) => (
+                <div key={i}>
+                  {i === 0 ? <span className="history-dot" /> : <span className="history-empty" />}
+                  {h.label}
+                </div>
+              ))
+            ) : (
+              <p className="hint">还没有编辑操作</p>
             )}
           </div>
-        </div>
+        )}
+        {modal && (
+          <div
+            className="modal-backdrop"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !progress) setModal(null);
+            }}
+          >
+            <div
+              className={'modal ' + (modal === 'export' ? 'export-modal' : '')}
+              role="dialog"
+              aria-modal="true"
+              aria-label={
+                modal === 'data' ? '导入数据' : modal === 'export' ? '批量导出' : '使用帮助'
+              }
+            >
+              <div className="modal-title">
+                <h2>
+                  {modal === 'data'
+                    ? '导入数据'
+                    : modal === 'export'
+                      ? '批量导出'
+                      : '欢迎使用 TEditor2'}
+                </h2>
+                <button
+                  disabled={!!progress}
+                  className="icon-button"
+                  aria-label="关闭对话框"
+                  onClick={() => setModal(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              {modal === 'data' && (
+                <>
+                  <p className="muted">
+                    从 Excel 复制包含标题行的表格，粘贴到下方。也可导入 CSV / TSV 文件。
+                  </p>
+                  <textarea
+                    className="data-paste"
+                    aria-label="粘贴表格数据"
+                    placeholder={'名称\t得分\t图片\n林间来信\t98.6\tavatars/01.png'}
+                    value={dataText}
+                    onChange={(e) => setDataText(e.target.value)}
+                  />
+                  {dataError && <p className="error-message">{dataError}</p>}
+                  <div className="modal-actions">
+                    <button className="secondary" onClick={() => csvInput.current?.click()}>
+                      <FolderOpen size={15} />
+                      选择 CSV / TSV
+                    </button>
+                    <button className="primary" onClick={pasteData}>
+                      导入表格
+                    </button>
+                  </div>
+                </>
+              )}
+              {modal === 'export' && (
+                <>
+                  <p className="muted">
+                    以文档尺寸生成透明 PNG。当前数据源共 {Math.max(1, table.rows.length)} 行。
+                  </p>
+                  <div className="export-layout">
+                    <fieldset className="export-settings" disabled={!!progress}>
+                      <label className="field">
+                        <span>文件名模板</span>
+                        <input
+                          aria-label="导出文件名模板"
+                          value={exportOptions.filename}
+                          onChange={(e) =>
+                            setExportOptions((o) => ({ ...o, filename: e.target.value }))
+                          }
+                        />
+                        <small>
+                          支持 {'{index}'} 和 {'{列名}'}，自动添加 .png
+                        </small>
+                      </label>
+                      <div className="field-grid">
+                        <NumberField
+                          label="起始行"
+                          value={exportOptions.start}
+                          min={1}
+                          onChange={(v) => setExportOptions((o) => ({ ...o, start: v }))}
+                        />
+                        <NumberField
+                          label="结束行"
+                          value={exportOptions.end}
+                          min={1}
+                          onChange={(v) => setExportOptions((o) => ({ ...o, end: v }))}
+                        />
+                      </div>
+                      <div className="export-repeat">
+                        <div className="section-label">同页重复排版</div>
+                        <NumberField
+                          label="额外副本数"
+                          value={exportOptions.repeats}
+                          min={0}
+                          max={500}
+                          onChange={(v) => setExportOptions((o) => ({ ...o, repeats: v }))}
+                        />
+                        <div className="field-grid">
+                          <NumberField
+                            label="X 偏移"
+                            value={exportOptions.deltaX}
+                            onChange={(v) => setExportOptions((o) => ({ ...o, deltaX: v }))}
+                          />
+                          <NumberField
+                            label="Y 偏移"
+                            value={exportOptions.deltaY}
+                            onChange={(v) => setExportOptions((o) => ({ ...o, deltaY: v }))}
+                          />
+                        </div>
+                        <p className="hint">
+                          副本数为 2 时，每张图放入连续 3 行数据；画布大小保持不变。
+                        </p>
+                      </div>
+                      <label className="field">
+                        <span>保存方式</span>
+                        <select
+                          aria-label="保存方式"
+                          value={exportOptions.mode}
+                          onChange={(e) =>
+                            setExportOptions((o) => ({ ...o, mode: e.target.value }))
+                          }
+                        >
+                          <option value="directory">写入本地目录（推荐）</option>
+                          <option value="zip">ZIP 下载（每包最多 50 张）</option>
+                        </select>
+                      </label>
+                    </fieldset>
+                    <BatchPreview
+                      document={doc}
+                      table={table}
+                      plans={exportPlan.plans}
+                      error={exportPlan.error}
+                      deltaX={exportOptions.deltaX}
+                      deltaY={exportOptions.deltaY}
+                      resolveImage={assets.current.resolve}
+                      assetRevision={assetRevision}
+                      fonts={fonts}
+                      disabled={!!progress}
+                    />
+                  </div>
+                  {progress && (
+                    <div className="progress">
+                      <div>
+                        <span>正在生成图片</span>
+                        <b>
+                          {progress.done} / {progress.total || '…'}
+                        </b>
+                      </div>
+                      <progress value={progress.done} max={progress.total || 1} />
+                    </div>
+                  )}
+                  {exportMessage && (
+                    <p role="status" className="export-message">
+                      {exportMessage}
+                    </p>
+                  )}
+                  {archives.length > 0 && (
+                    <div className="archive-list">
+                      {archives.map((a) => (
+                        <a key={a.url} href={a.url} download={a.name}>
+                          <Download size={14} />
+                          {a.name}
+                          <span>{(a.size / 1024 / 1024).toFixed(1)} MB</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div className="modal-actions">
+                    <span className="hint">同名文件会自动编号，不覆盖已有图片。</span>
+                    {progress ? (
+                      <button className="secondary" onClick={() => exportAbort.current?.abort()}>
+                        取消导出
+                      </button>
+                    ) : (
+                      <button
+                        className="primary"
+                        onClick={batchExport}
+                        disabled={!!exportPlan.error}
+                      >
+                        <Download size={15} />
+                        开始导出
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+              {modal === 'help' && (
+                <>
+                  <p className="muted">
+                    一个在浏览器中运行的模板图片编辑器。通过表格数据，让同一份设计生成不同内容。
+                  </p>
+                  <ol className="help-steps">
+                    <li>
+                      <b>设计模板</b>
+                      <span>添加文字、图片、图形，设置描边、阴影或剪贴蒙版。</span>
+                    </li>
+                    <li>
+                      <b>连接数据</b>
+                      <span>粘贴 Excel 或导入 CSV，在文字和图片地址中使用 {'{列名}'}。</span>
+                    </li>
+                    <li>
+                      <b>批量生成</b>
+                      <span>用条件组切换元素，再将 PNG 保存到本地目录。</span>
+                    </li>
+                  </ol>
+                  <div className="shortcuts">
+                    <span>撤销 / 重做</span>
+                    <kbd>⌘ / Ctrl + Z / Shift + Z</kbd>
+                    <span>复制图层</span>
+                    <kbd>⌘ / Ctrl + D</kbd>
+                    <span>移动图层</span>
+                    <kbd>方向键 · Shift 加速</kbd>
+                    <span>移动画布</span>
+                    <kbd>空格 + 拖动</kbd>
+                    <span>缩放画布</span>
+                    <kbd>Alt + 滚轮</kbd>
+                  </div>
+                  <p className="hint">
+                    支持旧版 .ted。Windows
+                    字体在其他系统可能需要导入。批量任务运行时请保持页面打开。
+                  </p>
+                  <div className="modal-actions">
+                    <button
+                      className="secondary"
+                      onClick={() => {
+                        setModal(null);
+                        void loadDemo();
+                      }}
+                    >
+                      载入演示模板
+                    </button>
+                    <button className="primary" onClick={() => setModal(null)}>
+                      开始创作
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        <input
+          hidden
+          ref={openInput}
+          type="file"
+          accept=".ted,.json"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void loadTemplate(f);
+            e.target.value = '';
+          }}
+        />
+        <input
+          hidden
+          ref={imageInput}
+          type="file"
+          accept="image/*,.tif,.tiff"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void chooseImage(f);
+            e.target.value = '';
+          }}
+        />
+        <input
+          hidden
+          ref={assetInput}
+          type="file"
+          multiple
+          {...({ webkitdirectory: '' } as Record<string, string>)}
+          onChange={(e) => {
+            if (e.target.files) void importAssets([...e.target.files]);
+            e.target.value = '';
+          }}
+        />
+        <input
+          hidden
+          ref={csvInput}
+          type="file"
+          accept=".csv,.tsv,.txt"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void loadData(f);
+            e.target.value = '';
+          }}
+        />
+        <input
+          hidden
+          ref={fontInput}
+          type="file"
+          accept=".ttf,.otf,.woff,.woff2"
+          multiple
+          onChange={(e) => {
+            for (const f of e.target.files || [])
+              void loadFont(f).catch((e) => notice(errorText(e)));
+            e.target.value = '';
+          }}
+        />
+      </div>
+      {videoStarted && (
+        <Suspense fallback={<div style={{ padding: 40 }}>正在打开视频工作区…</div>}>
+          <VideoEditor
+            visible={videoOpen}
+            onClose={() => setVideoOpen(false)}
+            imageDocument={doc}
+            imageTable={table}
+            imageName={filename}
+            imageRow={row}
+            imageLayout={exportOptions}
+            imageRevision={assetRevision}
+            imageFiles={assets.current.files}
+            resolveImage={assets.current.resolve}
+            linkedGraphicId={linkedGraphicId}
+            onLinkGraphic={(id, layout) => {
+              setLinkedGraphicId(id);
+              if (layout) setExportOptions((o) => ({ ...o, ...layout }));
+            }}
+            onEditGraphic={async (source: GraphicSource, files: Map<string, File>) => {
+              const sameContent =
+                JSON.stringify(docRef.current) === JSON.stringify(source.document) &&
+                JSON.stringify(table) === JSON.stringify(source.table);
+              const sameResources =
+                source.resources === undefined ||
+                (files.size === assets.current.files.size &&
+                  [...files].every(([path, file]) => assets.current.files.get(path) === file));
+              if (sameContent && sameResources) {
+                setExportOptions((o) => ({ ...o, ...source.layout }));
+                setFilename(source.name);
+                setLinkedGraphicId(source.id);
+                setVideoOpen(false);
+                return;
+              }
+              if (
+                dirty &&
+                !confirm(
+                  '打开关联图片将替换当前尚未保存的图片设计，是否继续？请先保存模板或将其关联到视频工程。',
+                )
+              )
+                return;
+              if (source.resources !== undefined) {
+                assets.current.clear();
+                assets.current.files = new Map(files);
+                for (const file of new Set(files.values()))
+                  if (/\.(ttf|otf|woff2?)$/i.test(file.name)) {
+                    try {
+                      await loadFont(file, false);
+                    } catch (e) {
+                      notice(errorText(e));
+                    }
+                  }
+                setAssetRevision((v) => v + 1);
+                void saveAssets(assets.current.files).catch((e) => notice(errorText(e)));
+              }
+              reset(structuredClone(source.document), source.name, {
+                ...structuredClone(source.table),
+                rowIds: [...source.rowIds],
+              });
+              setExportOptions((o) => ({ ...o, ...source.layout }));
+              setLinkedGraphicId(source.id);
+              setVideoOpen(false);
+            }}
+          />
+        </Suspense>
       )}
-      <input
-        hidden
-        ref={openInput}
-        type="file"
-        accept=".ted,.json"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void loadTemplate(f);
-          e.target.value = '';
-        }}
-      />
-      <input
-        hidden
-        ref={imageInput}
-        type="file"
-        accept="image/*,.tif,.tiff"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void chooseImage(f);
-          e.target.value = '';
-        }}
-      />
-      <input
-        hidden
-        ref={assetInput}
-        type="file"
-        multiple
-        {...({ webkitdirectory: '' } as Record<string, string>)}
-        onChange={(e) => {
-          if (e.target.files) void importAssets([...e.target.files]);
-          e.target.value = '';
-        }}
-      />
-      <input
-        hidden
-        ref={csvInput}
-        type="file"
-        accept=".csv,.tsv,.txt"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void loadData(f);
-          e.target.value = '';
-        }}
-      />
-      <input
-        hidden
-        ref={fontInput}
-        type="file"
-        accept=".ttf,.otf,.woff,.woff2"
-        multiple
-        onChange={(e) => {
-          for (const f of e.target.files || []) void loadFont(f).catch((e) => notice(errorText(e)));
-          e.target.value = '';
-        }}
-      />
-    </div>
+    </>
   );
 }

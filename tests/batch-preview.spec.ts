@@ -54,24 +54,26 @@ test.beforeEach(async ({ page }) => {
       ],
     },
   ];
-  await page
-    .locator('input[type="file"][accept=".ted,.json"]')
-    .setInputFiles({
-      name: '预览测试.ted',
-      mimeType: 'application/json',
-      buffer: Buffer.from(serializeDocument(doc)),
-    });
+  await page.locator('input[type="file"][accept=".ted,.json"]').setInputFiles({
+    name: '预览测试.ted',
+    mimeType: 'application/json',
+    buffer: Buffer.from(serializeDocument(doc)),
+  });
   await expect(page.getByLabel('模板画布', { exact: true })).toHaveAttribute('width', '320');
 });
 test.afterEach(async ({ page }) => expect(errors.get(page)).toEqual([]));
 
 async function importRows(page: Page) {
+  const before = await fingerprint(page, '模板画布');
   await page.locator('.toolbar').getByRole('button', { name: '导入数据', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '导入数据' });
   await dialog
     .getByLabel('粘贴表格数据')
     .fill('名称\t等级\nA\tred\nB\tblue\nC\tred\nD\tblue\nE\tred');
   await dialog.getByRole('button', { name: '导入表格', exact: true }).click();
+  // The dialog closes before async font loading/rendering finishes. Wait for the
+  // first row's variable text to reach the canvas before taking its baseline hash.
+  await expect.poll(() => fingerprint(page, '模板画布')).not.toEqual(before);
 }
 async function colors(page: Page, points: number[][]) {
   return page.getByLabel('同页排版预览画布', { exact: true }).evaluate((element, points) => {
@@ -81,7 +83,16 @@ async function colors(page: Page, points: number[][]) {
 }
 async function fingerprint(page: Page, label: string) {
   return page.getByLabel(label, { exact: true }).evaluate(async (element) => {
-    const canvas = element as HTMLCanvasElement;
+    const source = element as HTMLCanvasElement;
+    // Compare the same PNG encode/decode representation on both sides. A raw
+    // canvas readback can differ at antialiased alpha edges after PNG roundtrip.
+    const image = new Image();
+    image.src = source.toDataURL('image/png');
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = source.width;
+    canvas.height = source.height;
+    canvas.getContext('2d')!.drawImage(image, 0, 0);
     const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
     const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', pixels))).join(
       ',',
@@ -182,7 +193,7 @@ test('live offsets, variable rows and last-page preview match exported PNG pixel
       ).join(',');
       return { width: canvas.width, height: canvas.height, hash };
     }, Buffer.from(files[filename]).toString('base64'));
-    expect(result).toEqual(expected);
+    expect(result, filename).toEqual(expected);
   }
 });
 

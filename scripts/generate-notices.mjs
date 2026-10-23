@@ -5,6 +5,8 @@ for (const [path, entry] of Object.entries(lock.packages)) {
   if (!path.startsWith('node_modules/') || entry.dev) continue;
   const pkg = JSON.parse(await readFile(`${path}/package.json`, 'utf8'));
   output += `\n${'='.repeat(72)}\n${pkg.name} ${pkg.version}\nLicense: ${pkg.license || 'See included notice'}\n${'='.repeat(72)}\n\n`;
+  if (entry.resolved?.startsWith('https://registry.npmjs.org/'))
+    output += `Source distribution: ${entry.resolved}\n\n`;
   const files = (await readdir(path)).filter((name) => /^(licen[sc]e|notice)(\.|$)/i.test(name));
   for (const file of files) output += (await readFile(`${path}/${file}`, 'utf8')) + '\n\n';
   if (!files.length) throw new Error(`Missing license notice for ${pkg.name}`);

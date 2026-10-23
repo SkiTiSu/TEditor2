@@ -16,6 +16,7 @@
     "crypto-js": "^4.2.0",
     "fflate": "^0.8.2",
     "lucide-react": "^0.468.0",
+    "mediabunny": "1.62.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "utif2": "^4.1.0"

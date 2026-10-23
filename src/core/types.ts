@@ -86,6 +86,8 @@ export type DataRow = Record<string, string>;
 export interface TableData {
   headers: string[];
   rows: DataRow[];
+  /** Stable row identity for linked video graphics; optional for legacy table callers. */
+  rowIds?: string[];
 }
 export interface Bounds {
   x: number;

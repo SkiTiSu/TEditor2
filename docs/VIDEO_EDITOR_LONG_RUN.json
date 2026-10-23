@@ -1,0 +1,170 @@
+{
+  "capturedAt": "2026-10-23T15:57:08.039Z",
+  "source": "2-second 320x180 H.264 30fps + AAC clip looped; 44.1kHz mono PCM BGM looped; color and text layers",
+  "storage": "fragmented MP4 streamed in 1 MiB chunks to OPFS",
+  "memoryScope": "performance.memory.usedJSHeapSize; excludes browser native decoder/encoder/GPU allocations",
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "platform": "MacIntel",
+  "hardwareConcurrency": 15,
+  "resolution": "1920x1080",
+  "fps": 60,
+  "videoTracks": 3,
+  "audioTracks": 2,
+  "frames": 108000,
+  "duration": 1800,
+  "videoDuration": 1800,
+  "audioDuration": 1800,
+  "videoCodec": "avc",
+  "audioCodec": "aac",
+  "bytes": 79800515,
+  "elapsedMs": 394711.2999999821,
+  "memory": [
+    {
+      "frame": 0,
+      "heap": 11367840
+    },
+    {
+      "frame": 3600,
+      "heap": 13256479
+    },
+    {
+      "frame": 7200,
+      "heap": 21932886
+    },
+    {
+      "frame": 10800,
+      "heap": 32541688
+    },
+    {
+      "frame": 14400,
+      "heap": 40688852
+    },
+    {
+      "frame": 18000,
+      "heap": 36460582
+    },
+    {
+      "frame": 21600,
+      "heap": 30377536
+    },
+    {
+      "frame": 25200,
+      "heap": 51223585
+    },
+    {
+      "frame": 28800,
+      "heap": 39047255
+    },
+    {
+      "frame": 32400,
+      "heap": 36847313
+    },
+    {
+      "frame": 36000,
+      "heap": 60927660
+    },
+    {
+      "frame": 39600,
+      "heap": 74777830
+    },
+    {
+      "frame": 43200,
+      "heap": 19094468
+    },
+    {
+      "frame": 46800,
+      "heap": 79621962
+    },
+    {
+      "frame": 50400,
+      "heap": 75318305
+    },
+    {
+      "frame": 54000,
+      "heap": 64895516
+    },
+    {
+      "frame": 57600,
+      "heap": 48727221
+    },
+    {
+      "frame": 61200,
+      "heap": 28995471
+    },
+    {
+      "frame": 64800,
+      "heap": 74738961
+    },
+    {
+      "frame": 68400,
+      "heap": 48162306
+    },
+    {
+      "frame": 72000,
+      "heap": 90402923
+    },
+    {
+      "frame": 75600,
+      "heap": 61473104
+    },
+    {
+      "frame": 79200,
+      "heap": 94634238
+    },
+    {
+      "frame": 82800,
+      "heap": 52006082
+    },
+    {
+      "frame": 86400,
+      "heap": 88279030
+    },
+    {
+      "frame": 90000,
+      "heap": 38124781
+    },
+    {
+      "frame": 93600,
+      "heap": 73730397
+    },
+    {
+      "frame": 97200,
+      "heap": 44679935
+    },
+    {
+      "frame": 100800,
+      "heap": 82373332
+    },
+    {
+      "frame": 104400,
+      "heap": 49804227
+    },
+    {
+      "frame": 108000,
+      "heap": 86314522
+    }
+  ],
+  "audioChecks": [
+    {
+      "time": 0.1,
+      "rms": 0.1127877822644651,
+      "samples": 12000
+    },
+    {
+      "time": 900.1,
+      "rms": 0.11175329596690943,
+      "samples": 11999
+    },
+    {
+      "time": 1799.6,
+      "rms": 0.11081204722267868,
+      "samples": 12000
+    }
+  ],
+  "lastPicturePixel": [
+    223,
+    0,
+    1,
+    255
+  ]
+}
