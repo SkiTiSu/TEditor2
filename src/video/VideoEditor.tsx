@@ -12,6 +12,7 @@ import {
   Search,
   Type,
   X,
+  Trash2,
 } from 'lucide-react';
 import type { ImageResolver, TableData, TedDocument } from '../core/types';
 import { downloadBlob } from '../core/assets';
@@ -70,6 +71,7 @@ import { ProgramMonitor, SourceMonitor, timecode } from './Monitors';
 import { TemplatePanel } from './TemplatePanel';
 import { SlideshowEditor } from './SlideshowEditor';
 import { SiteCredits } from '../components/SiteCredits';
+import { assetUsage, removeAsset } from './assetActions';
 import {
   createSlideshowSequence,
   inspectSlideshow,
@@ -144,6 +146,7 @@ export default function VideoEditor(props: VideoEditorProps) {
     [playing, setPlaying] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]),
     [assetId, setAssetId] = useState('');
+  const editFocus = useRef<'library' | 'timeline'>('timeline');
   const [sourceIn, setSourceIn] = useState(0),
     [sourceOut, setSourceOut] = useState(5);
   const [search, setSearch] = useState(''),
@@ -265,6 +268,28 @@ export default function VideoEditor(props: VideoEditorProps) {
     setAssetId(asset.id);
     setSourceIn(0);
     setSourceOut(asset.duration > 0 ? Math.min(25, asset.duration) : 5);
+  }
+  function deleteSelectedAsset() {
+    if (busy || exportActive.current) return;
+    const current = projectRef.current;
+    const asset = current.assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    const usage = assetUsage(current, asset.id);
+    if (usage.locked) {
+      setMessage('素材正在锁定轨道中使用，请先解锁相关轨道。');
+      return;
+    }
+    if (
+      (usage.clips || usage.bindings) &&
+      !confirm(
+        `“${asset.name}”已用于 ${usage.sequences} 个序列、${usage.clips} 个片段、${usage.bindings} 项主榜绑定。删除素材会同时移除这些引用，可撤销；磁盘原文件保留。继续吗？`,
+      )
+    )
+      return;
+    if (commit((p) => removeAsset(p, asset.id))) {
+      setAssetId('');
+      setMessage('素材已从工程删除，可撤销；磁盘原文件保留。');
+    }
   }
   function seek(value: number) {
     setPlaying(false);
@@ -403,6 +428,51 @@ export default function VideoEditor(props: VideoEditorProps) {
     return () => clearTimeout(t);
   }, [message]);
 
+  const waveformKey = project.assets
+    .filter((a) => a.hasAudio && a.waveformVersion !== 1)
+    .map((a) => a.id)
+    .join(',');
+  const [waveformBusy, setWaveformBusy] = useState(false);
+  useEffect(() => {
+    if (!ready || busy || exportProgress || !waveformKey) return;
+    const abort = new AbortController();
+    const projectId = projectRef.current.id;
+    setWaveformBusy(true);
+    void (async () => {
+      for (const id of waveformKey.split(',')) {
+        const file = media.getFile(id);
+        if (!file) continue;
+        try {
+          const waveform = await media.waveform(id, undefined, abort.signal);
+          if (abort.signal.aborted) return;
+          const current = projectRef.current;
+          if (
+            current.id !== projectId ||
+            media.getFile(id) !== file ||
+            !current.assets.some((a) => a.id === id)
+          )
+            continue;
+          // Waveforms are a derived preview cache, not a user edit or an undo step.
+          const next = {
+            ...current,
+            assets: current.assets.map((a) =>
+              a.id === id ? { ...a, waveform, waveformVersion: 1 } : a,
+            ),
+          };
+          projectRef.current = next;
+          setProject(next);
+        } catch {
+          /* Missing/unsupported audio still has normal playback and export diagnostics. */
+        }
+      }
+      if (!abort.signal.aborted) setWaveformBusy(false);
+    })();
+    return () => {
+      abort.abort();
+      setWaveformBusy(false);
+    };
+  }, [waveformKey, ready, busy, !!exportProgress, mediaRevision, media]);
+
   async function importFiles(files: File[], relink = false) {
     if (exportActive.current || busy) return;
     setBusy(true);
@@ -465,13 +535,6 @@ export default function VideoEditor(props: VideoEditorProps) {
               continue;
             const asset = await media.probe(file);
             temporaryIds.push(asset.id);
-            if (asset.hasAudio) {
-              try {
-                asset.waveform = await media.waveform(asset.id, 120);
-              } catch {
-                /* Optional overview; playback reports decoding errors. */
-              }
-            }
             added.push(asset);
             staged.set(asset.id, file);
           }
@@ -1157,6 +1220,16 @@ export default function VideoEditor(props: VideoEditorProps) {
         return;
       }
       if (typing || dialog) return;
+      const inLibrary = (e.target as HTMLElement).closest('.ve-library');
+      if (
+        viewMode === 'timeline' &&
+        (inLibrary || editFocus.current === 'library') &&
+        (e.key === 'Delete' || e.key === 'Backspace')
+      ) {
+        e.preventDefault();
+        deleteSelectedAsset();
+        return;
+      }
       if (e.code === 'Space') {
         e.preventDefault();
         setPlaying((v) => !v);
@@ -1492,11 +1565,33 @@ export default function VideoEditor(props: VideoEditorProps) {
               gridTemplateColumns: `${panels.left}px 5px minmax(250px, 1fr) 5px ${panels.right}px`,
             }}
           >
-            <aside className="ve-library">
+            <aside
+              className="ve-library"
+              tabIndex={-1}
+              onPointerDownCapture={() => {
+                editFocus.current = 'library';
+              }}
+              onFocusCapture={() => {
+                editFocus.current = 'library';
+              }}
+            >
               <div className="ve-panel-heading">
                 <strong>素材库</strong>
                 <span>{project.assets.length}</span>
+                <button
+                  aria-label="删除选中素材"
+                  title="删除选中素材 (Delete)"
+                  disabled={!currentAsset || busy}
+                  onClick={deleteSelectedAsset}
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
+              {waveformBusy && (
+                <small className="ve-waveform-status" role="status">
+                  正在生成音频波形…
+                </small>
+              )}
               <div className="ve-library-actions">
                 <button onClick={() => importInput.current?.click()} disabled={busy}>
                   <Plus size={15} />
@@ -1880,6 +1975,12 @@ export default function VideoEditor(props: VideoEditorProps) {
       {viewMode === 'timeline' && (
         <fieldset
           className="ve-timeline-field"
+          onPointerDownCapture={() => {
+            editFocus.current = 'timeline';
+          }}
+          onFocusCapture={() => {
+            editFocus.current = 'timeline';
+          }}
           disabled={!ready || !!exportProgress}
           style={{ height: `${panels.timeline}vh` }}
         >

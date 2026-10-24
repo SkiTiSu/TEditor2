@@ -348,14 +348,20 @@
 .vtl-wave {
   position: absolute;
   bottom: 2px;
-  left: 3px;
-  width: calc(100% - 6px);
   height: 31px;
   pointer-events: none;
 }
-.vtl-wave line {
+.vtl-wave path {
+  fill: #a7e8c8b8;
   stroke: #a7e8c8;
-  stroke-width: 1.5;
+  stroke-width: 0.65;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.vtl-wave .vtl-wave-center {
+  fill: none;
+  stroke: #d0ffe036;
+  stroke-width: 0.5;
 }
 .vtl-kind-video .vtl-wave {
   height: 15px;

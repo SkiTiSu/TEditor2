@@ -370,24 +370,29 @@ export class MediaLibrary {
     if (audioKeys)
       for (const key of this.audioCursors.keys()) if (!audioKeys.has(key)) this.releaseAudio(key);
   }
-  async waveform(id: string, bins = 160, signal?: AbortSignal): Promise<number[]> {
+  async waveform(id: string, bins?: number, signal?: AbortSignal): Promise<number[]> {
     const reader = await this.reader(id);
     if (!reader.audio) return [];
     const duration = (await reader.input.computeDuration()) - reader.origin;
-    const peaks = new Array<number>(Math.max(1, Math.min(1000, bins))).fill(0);
-    // Sample short windows across the file. Waveform size and decode work do not grow with clip duration.
+    const peaks = new Array<number>(
+      Math.max(1, Math.min(180_000, Math.ceil(bins ?? duration * 100))),
+    ).fill(0);
+    // Decode sequentially and discard each PCM block after reducing it into bounded peaks.
     const sink = new AudioBufferSink(reader.audio);
-    for (let index = 0; index < peaks.length; index++) {
+    for await (const sample of sink.buffers(reader.origin, reader.origin + duration)) {
       checkAbort(signal);
-      const sample = await sink.getBuffer(reader.origin + (duration * index) / peaks.length);
-      if (sample)
-        for (let channel = 0; channel < sample.buffer.numberOfChannels; channel++) {
-          const samples = sample.buffer.getChannelData(channel);
-          for (let i = 0; i < samples.length; i++)
-            peaks[index] = Math.max(peaks[index], Math.abs(samples[i]));
+      const samplesPerBin = (sample.buffer.sampleRate * duration) / peaks.length;
+      const start = (sample.timestamp - reader.origin) * sample.buffer.sampleRate;
+      for (let channel = 0; channel < sample.buffer.numberOfChannels; channel++) {
+        const samples = sample.buffer.getChannelData(channel);
+        for (let i = 0; i < samples.length; i++) {
+          const bin = Math.floor((start + i) / samplesPerBin);
+          if (bin >= 0 && bin < peaks.length)
+            peaks[bin] = Math.max(peaks[bin], Math.abs(samples[i]));
         }
+      }
     }
-    return peaks;
+    return peaks.map((value) => Math.round(Math.min(1, value) * 10000) / 10000);
   }
   get diagnostics() {
     return {

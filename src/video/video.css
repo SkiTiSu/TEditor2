@@ -502,6 +502,11 @@
   align-items: center;
   gap: 18px;
 }
+.ve-waveform-status {
+  display: block;
+  padding: 6px 10px;
+  color: #9bb4d8;
+}
 .ve-toast {
   position: fixed;
   bottom: 33px;

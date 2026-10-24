@@ -36,6 +36,8 @@ export interface MediaAsset {
   mimeType?: string;
   thumbnail?: string;
   waveform?: number[];
+  /** Version 1 contains peaks from continuous decoding, up to 100 samples per second. */
+  waveformVersion?: number;
   graphic?: { sourceId: string; rowIds: string[] };
   text?: string;
   color?: string;

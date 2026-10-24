@@ -1,3 +1,4 @@
+import { waveformEnvelope } from './waveform';
 import {
   useEffect,
   useMemo,
@@ -92,37 +93,36 @@ type DragPreview = {
 };
 type SelectionBox = { startX: number; startY: number; x: number; y: number };
 
-function Waveform({ asset, clip, fps }: { asset: MediaAsset; clip: VideoClip; fps: number }) {
-  if (!asset.waveform?.length || asset.duration <= 0) return null;
-  const wave = asset.waveform;
-  const count = 90;
-  const values = Array.from({ length: count }, (_, index) => {
-    const elapsed = ((index / (count - 1)) * clip.duration) / fps;
-    const loopDuration = asset.duration - clip.sourceIn;
-    const time = clip.sourceIn + (clip.loop && loopDuration > 0 ? elapsed % loopDuration : elapsed);
-    if (time >= asset.duration) return 0;
-    const sample = Math.min(
-      wave.length - 1,
-      Math.max(0, Math.floor((time / asset.duration) * wave.length)),
-    );
-    return Math.min(1, Math.max(0, Math.abs(wave[sample] ?? 0)));
-  });
+function Waveform({
+  asset,
+  clip,
+  fps,
+  pixelsPerSecond,
+  startPixel,
+  width,
+}: {
+  asset: MediaAsset;
+  clip: VideoClip;
+  fps: number;
+  pixelsPerSecond: number;
+  startPixel: number;
+  width: number;
+}) {
+  const values = waveformEnvelope(asset, clip, fps, pixelsPerSecond, startPixel, width);
+  if (!values.length) return null;
+  const top = values.map((value, i) => `${i},${(16 - value * 15).toFixed(2)}`);
+  const bottom = values.map((value, i) => `${i},${(16 + value * 15).toFixed(2)}`).reverse();
   return (
     <svg
       className="vtl-wave"
-      viewBox={`0 0 ${count * 3} 32`}
+      viewBox={`0 0 ${values.length - 1} 32`}
       preserveAspectRatio="none"
+      style={{ left: startPixel, width }}
+      data-waveform-points={values.length}
       aria-hidden="true"
     >
-      {values.map((value, index) => (
-        <line
-          key={index}
-          x1={index * 3 + 1}
-          x2={index * 3 + 1}
-          y1={16 - value * 15}
-          y2={16 + value * 15}
-        />
-      ))}
+      <path d={`M${top.join(' L')} L${bottom.join(' L')} Z`} />
+      <path className="vtl-wave-center" d={`M0,16 H${values.length - 1}`} />
     </svg>
   );
 }
@@ -1014,7 +1014,24 @@ export function Timeline(props: TimelineProps) {
                           />
                         )}
                         {asset && (kind === 'audio' || asset.hasAudio) && (
-                          <Waveform asset={asset} clip={clip} fps={sequence.fps} />
+                          <Waveform
+                            asset={asset}
+                            clip={clip}
+                            fps={sequence.fps}
+                            pixelsPerSecond={pixelsPerSecond}
+                            startPixel={Math.max(0, scrollLeft - clip.start * pxPerFrame - 8)}
+                            width={Math.max(
+                              0,
+                              Math.min(
+                                clip.duration * pxPerFrame,
+                                scrollLeft +
+                                  viewportWidth -
+                                  HEADER_WIDTH -
+                                  clip.start * pxPerFrame +
+                                  8,
+                              ) - Math.max(0, scrollLeft - clip.start * pxPerFrame - 8),
+                            )}
+                          />
                         )}
                         {kind === 'text' && <div className="vtl-text-preview">{asset?.text}</div>}
                         {kind === 'color' && (

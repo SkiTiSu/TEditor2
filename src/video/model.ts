@@ -391,6 +391,7 @@ export function validateProject(input: unknown): VideoProject {
       if (asset[field] !== undefined) number(asset[field], field, 0);
     if (asset.waveform !== undefined)
       array(asset.waveform, '波形').forEach((v) => number(v, '波形数值', -1, 1));
+    if (asset.waveformVersion !== undefined) number(asset.waveformVersion, '波形版本', 1, 1, true);
     if (asset.kind === 'graphic') {
       const graphic = object(asset.graphic, '图文引用');
       if (!graphicIds.has(graphic.sourceId as string)) throw new Error('图文引用的图片方案不存在');
