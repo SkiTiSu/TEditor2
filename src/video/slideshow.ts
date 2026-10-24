@@ -1,3 +1,4 @@
+import { validFrameRate } from './settings';
 import { createClip, createSequence, createTrack, uid, validateSequence } from './model';
 import type { MediaAsset, SlideshowSettings, VideoClip, VideoSequence } from './types';
 
@@ -357,8 +358,7 @@ export function rescaleSlideshow(
   assets: MediaAsset[],
   fps: number,
 ): VideoSequence {
-  if (!Number.isFinite(fps) || fps < 1 || fps > 240)
-    throw new Error('PPT 帧率必须是 1～240 之间的有限数值');
+  if (!validFrameRate(fps)) throw new Error('PPT 帧率必须是 1～240 之间的有限数值');
   const view = editable(sequence, assets);
   if (fps === sequence.fps) return validateSequence(sequence, assets);
   const ratio = fps / sequence.fps;

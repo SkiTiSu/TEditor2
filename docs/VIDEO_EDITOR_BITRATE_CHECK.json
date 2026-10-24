@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-24",
+  "platform": "macOS / Chrome headless",
+  "input": "2 秒 1920×1080 / 30 fps；每帧随机彩色块，先编码为 60 Mbps H.264，再作为真实源素材导出；seed=23",
+  "scope": "验证码率参数实际传入编码器、对成片有影响，以及显示码率与重新读取的视频包平均码率一致。目标码率不是严格上限。",
+  "results": [
+    {
+      "requested": 6000000,
+      "mode": "variable",
+      "actual": 17911592,
+      "config": {
+        "codec": "avc1.640028",
+        "width": 1920,
+        "height": 1080,
+        "displayWidth": 1920,
+        "displayHeight": 1080,
+        "bitrate": 6000000,
+        "bitrateMode": "variable",
+        "alpha": "discard",
+        "framerate": 30,
+        "latencyMode": "quality",
+        "avc": {
+          "format": "avc"
+        }
+      },
+      "stats": {
+        "packetCount": 60,
+        "averagePacketRate": 30,
+        "averageBitrate": 17911592
+      },
+      "duration": 2,
+      "bytes": 4480733,
+      "decoded": true
+    },
+    {
+      "requested": 40000000,
+      "mode": "variable",
+      "actual": 40962208,
+      "config": {
+        "codec": "avc1.640029",
+        "width": 1920,
+        "height": 1080,
+        "displayWidth": 1920,
+        "displayHeight": 1080,
+        "bitrate": 40000000,
+        "bitrateMode": "variable",
+        "alpha": "discard",
+        "framerate": 30,
+        "latencyMode": "quality",
+        "avc": {
+          "format": "avc"
+        }
+      },
+      "stats": {
+        "packetCount": 60,
+        "averagePacketRate": 30,
+        "averageBitrate": 40962208
+      },
+      "duration": 2,
+      "bytes": 10243387,
+      "decoded": true
+    },
+    {
+      "requested": 6000000,
+      "mode": "constant",
+      "actual": 17911592,
+      "config": {
+        "codec": "avc1.640028",
+        "width": 1920,
+        "height": 1080,
+        "displayWidth": 1920,
+        "displayHeight": 1080,
+        "bitrate": 6000000,
+        "bitrateMode": "constant",
+        "alpha": "discard",
+        "framerate": 30,
+        "latencyMode": "quality",
+        "avc": {
+          "format": "avc"
+        }
+      },
+      "stats": {
+        "packetCount": 60,
+        "averagePacketRate": 30,
+        "averageBitrate": 17911592
+      },
+      "duration": 2,
+      "bytes": 4480733,
+      "decoded": true
+    }
+  ]
+}

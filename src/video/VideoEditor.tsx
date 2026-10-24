@@ -1,3 +1,6 @@
+import { rescaleSequence } from './frameRate';
+import { FrameRateInput } from './FrameRateInput';
+import { defaultVideoBitrate, FRAME_RATE_HINT, type VideoBitrateMode } from './settings';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -166,7 +169,8 @@ export default function VideoEditor(props: VideoEditorProps) {
   const [graphicSelected, setGraphicSelected] = useState<string[]>([]);
   const [exportStart, setExportStart] = useState(0),
     [exportEnd, setExportEnd] = useState(0),
-    [quality, setQuality] = useState(16);
+    [quality, setQuality] = useState(6);
+  const [bitrateMode, setBitrateMode] = useState<VideoBitrateMode>('variable');
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportCheck, setExportCheck] = useState(''),
     [exportResult, setExportResult] = useState<VideoExportResult | null>(null);
@@ -1067,38 +1071,9 @@ export default function VideoEditor(props: VideoEditorProps) {
           ...rescaleSlideshow(s, projectRef.current.assets, sequenceForm.fps),
           ...sequenceForm,
         };
-      const ratio = sequenceForm.fps / s.fps;
       return {
-        ...s,
+        ...rescaleSequence(s, projectRef.current.assets, sequenceForm.fps),
         ...sequenceForm,
-        slideshow: s.slideshow
-          ? {
-              ...s.slideshow,
-              defaultDuration: Math.max(1, Math.round(s.slideshow.defaultDuration * ratio)),
-              transitionDuration: Math.round(s.slideshow.transitionDuration * ratio),
-              bgmFadeIn: Math.round(s.slideshow.bgmFadeIn * ratio),
-              bgmFadeOut: Math.round(s.slideshow.bgmFadeOut * ratio),
-            }
-          : undefined,
-        clips: s.clips.map((c) => ({
-          ...c,
-          start: Math.round(c.start * ratio),
-          duration: Math.max(1, Math.round(c.duration * ratio)),
-          fadeIn: Math.round(c.fadeIn * ratio),
-          fadeOut: Math.round(c.fadeOut * ratio),
-        })),
-        transitions: s.transitions.map((t) => ({ ...t, duration: Math.round(t.duration * ratio) })),
-        markers: s.markers.map((m) => ({ ...m, frame: Math.round(m.frame * ratio) })),
-        exportSettings: s.exportSettings
-          ? {
-              ...s.exportSettings,
-              startFrame: Math.round(s.exportSettings.startFrame * ratio),
-              endFrame: Math.max(
-                Math.round(s.exportSettings.startFrame * ratio) + 1,
-                Math.round(s.exportSettings.endFrame * ratio),
-              ),
-            }
-          : undefined,
       };
     });
     if (applied) {
@@ -1117,6 +1092,7 @@ export default function VideoEditor(props: VideoEditorProps) {
       startFrame: Math.round(exportStart * sequence.fps),
       endFrame: Math.round(exportEnd * sequence.fps),
       videoBitrate: quality * 1e6,
+      videoBitrateMode: bitrateMode,
     };
     if (
       settings.startFrame < 0 ||
@@ -1144,6 +1120,7 @@ export default function VideoEditor(props: VideoEditorProps) {
         startFrame: Math.round(exportStart * sequence.fps),
         endFrame: Math.round(exportEnd * sequence.fps),
         videoBitrate: quality * 1e6,
+        videoBitrateMode: bitrateMode,
       });
       setExportCheck(
         check.errors.length
@@ -1190,14 +1167,22 @@ export default function VideoEditor(props: VideoEditorProps) {
         startFrame: Math.round(exportStart * sequence.fps),
         endFrame: Math.round(exportEnd * sequence.fps),
         videoBitrate: quality * 1e6,
+        videoBitrateMode: bitrateMode,
         signal: controller.signal,
         onProgress: setExportProgress,
         fileHandle,
       });
       setExportResult(result);
       setDownloadUrl(URL.createObjectURL(result.file));
+      const bitrateNote =
+        result.actualVideoBitrate > result.targetVideoBitrate * 1.25
+          ? '实际码率高于目标，可降低目标码率或画幅后重试。'
+          : result.videoBitrateMode === 'constant' &&
+              result.actualVideoBitrate < result.targetVideoBitrate * 0.75
+            ? '本机编码器未达到 CBR 目标，请以实际码率为准。'
+            : '';
       setExportCheck(
-        `导出完成：${result.frames} 帧，${result.duration.toFixed(2)} 秒，${(result.bytes / 1024 / 1024).toFixed(1)} MB，耗时 ${(result.elapsedMs / 1000).toFixed(1)} 秒。${direct ? '文件已写入所选位置。' : '可点击下方下载。'}`,
+        `导出完成：${result.frames} 帧，${result.duration.toFixed(2)} 秒，${(result.bytes / 1024 / 1024).toFixed(1)} MB，耗时 ${(result.elapsedMs / 1000).toFixed(1)} 秒。视频目标 ${(result.targetVideoBitrate / 1e6).toFixed(2)} Mbps（${result.videoBitrateMode === 'constant' ? 'CBR' : 'VBR'}），实际平均 ${(result.actualVideoBitrate / 1e6).toFixed(2)} Mbps。${bitrateNote}${direct ? '文件已写入所选位置。' : '可点击下方下载。'}`,
       );
     } catch (e) {
       setExportCheck(controller.signal.aborted ? '导出已取消，工程已保留。' : errorMessage(e));
@@ -1391,7 +1376,8 @@ export default function VideoEditor(props: VideoEditorProps) {
               setExportEnd(
                 Math.max(start + 1, Math.min(saved?.endFrame ?? total, total)) / sequence.fps,
               );
-              setQuality((saved?.videoBitrate ?? 16e6) / 1e6);
+              setQuality((saved?.videoBitrate ?? defaultVideoBitrate(sequence)) / 1e6);
+              setBitrateMode(saved?.videoBitrateMode ?? 'variable');
               setExportCheck('');
               setDialog('export');
               setPlaying(false);
@@ -2232,9 +2218,9 @@ export default function VideoEditor(props: VideoEditorProps) {
                   />
                 </label>
                 <div className="ve-form-row">
-                  {(['width', 'height', 'fps'] as const).map((k) => (
+                  {(['width', 'height'] as const).map((k) => (
                     <label key={k}>
-                      {{ width: '宽度', height: '高度', fps: '帧率' }[k]}
+                      {{ width: '宽度', height: '高度' }[k]}
                       <input
                         type="number"
                         aria-label={`序列${k}`}
@@ -2245,7 +2231,16 @@ export default function VideoEditor(props: VideoEditorProps) {
                       />
                     </label>
                   ))}
+                  <label>
+                    帧率
+                    <FrameRateInput
+                      label="序列fps"
+                      value={sequenceForm.fps}
+                      onChange={(fps) => setSequenceForm((value) => ({ ...value, fps }))}
+                    />
+                  </label>
                 </div>
+                <p className="ve-muted">{FRAME_RATE_HINT}</p>
                 <button className="ve-primary" onClick={applySequenceSettings}>
                   应用序列设置
                 </button>
@@ -2286,15 +2281,36 @@ export default function VideoEditor(props: VideoEditorProps) {
                         value={quality}
                         onChange={(e) => setQuality(Number(e.target.value))}
                       >
-                        {[4, 8, 16, 24, 40].map((n) => (
-                          <option key={n} value={n}>
-                            {n} Mbps
-                          </option>
-                        ))}
+                        {[...new Set([3, 4, 6, 8, 12, 16, 20, 24, 40, quality])]
+                          .sort((a, b) => a - b)
+                          .map((n) => (
+                            <option key={n} value={n}>
+                              {n} Mbps
+                            </option>
+                          ))}
                       </select>
                     </label>
                   </div>
-                  <p>先导出短选区检查效果。长片分块写入，保持页面打开。</p>
+                  <label>
+                    码率模式
+                    <select
+                      aria-label="码率模式"
+                      value={bitrateMode}
+                      onChange={(e) => setBitrateMode(e.target.value as VideoBitrateMode)}
+                    >
+                      <option value="variable">VBR 可变码率（推荐）</option>
+                      <option value="constant">CBR 恒定码率（受设备支持限制）</option>
+                    </select>
+                  </label>
+                  <p>
+                    {bitrateMode === 'variable'
+                      ? 'VBR 按画面复杂度分配码率，目标并非上限；静态图片通常较低，复杂画面可能超出目标。'
+                      : 'CBR 向编码器请求恒定码率，部分设备可能忽略此请求，请在完成后核对实际码率。'}
+                  </p>
+                  <p>
+                    1080p 默认 6
+                    Mbps；平台处理规则可能变化，不承诺免二压。先导出短选区检查效果，长片导出时保持页面打开。
+                  </p>
                   <div className="ve-modal-actions">
                     <button onClick={() => void checkExport()}>导出前检查</button>
                     <button onClick={() => void runExport(true)}>选择文件并导出</button>

@@ -1,3 +1,5 @@
+import { FrameRateInput } from './FrameRateInput';
+import { FRAME_RATE_HINT } from './settings';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
 import { downloadBlob } from '../core/assets';
@@ -307,17 +309,14 @@ export function TemplatePanel({
             </label>
             <label>
               帧率
-              <select
-                aria-label="模板帧率"
+              <FrameRateInput
+                label="模板帧率"
                 value={template.fps}
-                onChange={(e) => change({ fps: Number(e.target.value) })}
-              >
-                {[24, 25, 30, 50, 60].map((n) => (
-                  <option key={n}>{n}</option>
-                ))}
-              </select>
+                onChange={(fps) => change({ fps })}
+              />
             </label>
           </div>
+          <p className="ve-muted">{FRAME_RATE_HINT}</p>
           <div className="ve-section-list">
             {template.sections.map((s, i) => (
               <div key={s.id} className="ve-template-section">

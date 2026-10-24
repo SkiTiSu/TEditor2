@@ -13,6 +13,12 @@ import {
 import { SequenceRenderer, sequenceDuration } from './compositor';
 import { checkAbort, isFileAsset } from './media';
 import type { VideoProject, VideoSequence } from './types';
+import {
+  defaultVideoBitrate,
+  DEFAULT_AUDIO_BITRATE,
+  validFrameRate,
+  type VideoBitrateMode,
+} from './settings';
 
 export interface ExportProgress {
   completed: number;
@@ -28,6 +34,7 @@ export interface VideoExportOptions {
   onProgress?: (progress: ExportProgress) => void;
   fileHandle?: FileSystemFileHandle;
   videoBitrate?: number;
+  videoBitrateMode?: VideoBitrateMode;
   audioBitrate?: number;
 }
 export interface VideoExportResult {
@@ -36,6 +43,10 @@ export interface VideoExportResult {
   duration: number;
   elapsedMs: number;
   bytes: number;
+  targetVideoBitrate: number;
+  videoBitrateMode: VideoBitrateMode;
+  actualVideoBitrate: number;
+  encoderConfig?: VideoEncoderConfig;
   cleanup: () => Promise<void>;
 }
 export interface ExportCapabilities {
@@ -45,8 +56,6 @@ export interface ExportCapabilities {
   streaming: boolean;
   errors: string[];
 }
-const DEFAULT_VIDEO_BITRATE = 16_000_000;
-const DEFAULT_AUDIO_BITRATE = 192_000;
 
 // WebCodecs does not expose AAC encoder priming. Some platform encoders add more than 60 ms.
 // Calibrate with two impulses once per encoder configuration, then express priming in MP4's edit list.
@@ -207,10 +216,16 @@ class BoundedAacEncoder {
 /** Probes the exact output dimensions/rate and both encoders; does not silently change container or codecs. */
 export async function checkExportCapabilities(
   sequence: Pick<VideoSequence, 'width' | 'height' | 'fps'>,
-  options: Pick<VideoExportOptions, 'videoBitrate' | 'audioBitrate' | 'fileHandle'> = {},
+  options: Pick<
+    VideoExportOptions,
+    'videoBitrate' | 'videoBitrateMode' | 'audioBitrate' | 'fileHandle'
+  > = {},
 ): Promise<ExportCapabilities> {
   const errors: string[] = [];
-  const videoQuality = new Quality({ bitrate: options.videoBitrate ?? DEFAULT_VIDEO_BITRATE });
+  const videoQuality = new Quality({
+    bitrate: options.videoBitrate ?? defaultVideoBitrate(sequence),
+    bitrateMode: options.videoBitrateMode ?? 'variable',
+  });
   const audioQuality = new Quality({ bitrate: options.audioBitrate ?? DEFAULT_AUDIO_BITRATE });
   const dimensionsValid =
     Number.isInteger(sequence.width) &&
@@ -220,15 +235,15 @@ export async function checkExportCapabilities(
     sequence.width % 2 === 0 &&
     sequence.height % 2 === 0;
   if (!dimensionsValid) errors.push('H.264 输出的宽和高必须为至少 2 像素的偶数。');
-  if (!(sequence.fps >= 1 && sequence.fps <= 120))
-    errors.push('输出帧率必须在 1 至 120 fps 之间。');
+  if (!validFrameRate(sequence.fps)) errors.push('输出帧率必须在 1 至 240 fps 之间。');
   const [video, audio] = await Promise.all([
-    dimensionsValid
+    dimensionsValid && validFrameRate(sequence.fps)
       ? canEncodeVideo('avc', {
           width: sequence.width,
           height: sequence.height,
           frameRate: sequence.fps,
           quality: videoQuality,
+          latencyMode: 'quality',
         }).catch(() => false)
       : false,
     canEncodeAudio('aac', { sampleRate: 48000, numberOfChannels: 2, quality: audioQuality }).catch(
@@ -237,7 +252,7 @@ export async function checkExportCapabilities(
   ]);
   if (!video)
     errors.push(
-      '此浏览器或设备无法编码所选画幅/帧率的 H.264 视频；请使用支持 WebCodecs 的桌面 Chrome/Edge，或降低输出尺寸。',
+      '此浏览器或设备无法编码所选画幅、帧率或码率模式的 H.264 视频；请降低尺寸/帧率，或改用可变码率。',
     );
   if (!audio) errors.push('此浏览器缺少 AAC 编码能力，无法输出有声 MP4。');
   const streaming = !!options.fileHandle || !!navigator.storage?.getDirectory;
@@ -323,7 +338,7 @@ export async function preflightExport(
   }
   const estimatedBytes = Math.ceil(
     (((Math.max(0, end - start) / sequence.fps) *
-      ((options.videoBitrate ?? DEFAULT_VIDEO_BITRATE) +
+      ((options.videoBitrate ?? defaultVideoBitrate(sequence)) +
         (options.audioBitrate ?? DEFAULT_AUDIO_BITRATE))) /
       8) *
       1.15,
@@ -353,6 +368,10 @@ export async function exportSequence(
     end = options.endFrame ?? sequenceDuration(sequence),
     frames = end - start;
   let bytes = 0;
+  let videoBytes = 0;
+  let encoderConfig: VideoEncoderConfig | undefined;
+  const targetVideoBitrate = options.videoBitrate ?? defaultVideoBitrate(sequence);
+  const videoBitrateMode = options.videoBitrateMode ?? 'variable';
   const report = (completed: number, phase: ExportProgress['phase']) =>
     options.onProgress?.({
       completed,
@@ -424,9 +443,15 @@ export async function exportSequence(
     canvas.height = sequence.height;
     const video = new CanvasSource(canvas, {
       codec: 'avc',
-      quality: new Quality({ bitrate: options.videoBitrate ?? DEFAULT_VIDEO_BITRATE }),
+      quality: new Quality({ bitrate: targetVideoBitrate, bitrateMode: videoBitrateMode }),
       keyFrameInterval: 1,
       latencyMode: 'quality',
+      onEncodedPacket(packet) {
+        videoBytes += packet.data.byteLength;
+      },
+      onEncoderConfig(config) {
+        encoderConfig = { ...config };
+      },
     });
     const audioBitrate = options.audioBitrate ?? DEFAULT_AUDIO_BITRATE;
     audioEncoder = new BoundedAacEncoder(
@@ -481,6 +506,10 @@ export async function exportSequence(
       duration: frames / sequence.fps,
       elapsedMs: performance.now() - began,
       bytes: file.size,
+      targetVideoBitrate,
+      videoBitrateMode,
+      actualVideoBitrate: (videoBytes * 8) / (frames / sequence.fps),
+      encoderConfig,
       cleanup,
     };
   } catch (error) {

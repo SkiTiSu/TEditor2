@@ -647,6 +647,7 @@ test('operation previews, sync scope, saved export settings and adjustable panel
     startFrame: 75,
     endFrame: 450,
     videoBitrate: 24_000_000,
+    videoBitrateMode: 'variable',
   });
   await video.getByRole('button', { name: '新建', exact: true }).click();
   await expect(video.locator('.vtl-clip')).toHaveCount(0);

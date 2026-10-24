@@ -104,7 +104,12 @@ export interface VideoSequence {
   clips: VideoClip[];
   transitions: { id: string; fromClipId: string; toClipId: string; duration: number }[];
   markers: { id: string; frame: number; label: string }[];
-  exportSettings?: { startFrame: number; endFrame: number; videoBitrate: number };
+  exportSettings?: {
+    startFrame: number;
+    endFrame: number;
+    videoBitrate: number;
+    videoBitrateMode?: 'variable' | 'constant';
+  };
   slideshow?: SlideshowSettings;
 }
 export interface VideoProject {

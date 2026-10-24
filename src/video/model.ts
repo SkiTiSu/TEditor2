@@ -1,3 +1,4 @@
+import { MIN_FRAME_RATE, MAX_FRAME_RATE } from './settings';
 import { normalizeDocument } from '../core/document';
 import { planBatch } from '../core/data';
 import type { TableData, TedDocument } from '../core/types';
@@ -155,7 +156,7 @@ export function validateSequence(input: unknown, assets?: MediaAsset[]): VideoSe
   number(raw.width, '序列宽度', 1, 16384, true);
   number(raw.height, '序列高度', 1, 16384, true);
   if (raw.width * raw.height > 64_000_000) throw new Error('序列画布超过 6400 万像素');
-  number(raw.fps, '序列帧率', 1, 240);
+  number(raw.fps, '序列帧率', MIN_FRAME_RATE, MAX_FRAME_RATE);
   if (raw.slideshow !== undefined) {
     const settings = object(raw.slideshow, 'PPT 设置');
     text(settings.pageTrackId, 'PPT 页面轨道', true);
@@ -177,6 +178,8 @@ export function validateSequence(input: unknown, assets?: MediaAsset[]): VideoSe
     number(settings.endFrame, '导出结束帧', 0, Number.MAX_SAFE_INTEGER, true);
     if (settings.endFrame <= settings.startFrame) throw new Error('导出结束帧必须晚于起始帧');
     number(settings.videoBitrate, '导出视频码率', 1, Number.MAX_SAFE_INTEGER, true);
+    if (settings.videoBitrateMode !== undefined)
+      choice(settings.videoBitrateMode, ['variable', 'constant'], '视频码率模式');
     // Keep stored ranges after timeline edits; the export UI clamps them to the new duration.
   }
   const tracks = array(raw.tracks, '轨道').map((v) => object(v, '轨道'));
