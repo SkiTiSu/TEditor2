@@ -189,6 +189,7 @@ export function insertClips(
   incoming: VideoClip[],
   atFrame: number,
   syncTrackIds?: string[],
+  incomingTransitions: VideoSequence['transitions'] = [],
 ): VideoSequence {
   frames(atFrame);
   if (atFrame < 0) throw new Error('插入位置不能为负数');
@@ -209,6 +210,7 @@ export function insertClips(
   }));
   assertUnlocked(next, additions);
   next.clips.push(...additions);
+  next.transitions.push(...structuredClone(incomingTransitions));
   return finish(next);
 }
 

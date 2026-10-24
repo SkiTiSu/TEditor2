@@ -1,3 +1,4 @@
+import { copyTimelineClips, pasteTimelineClips, TIMELINE_CLIPBOARD_MIME } from './clipboard';
 import { rescaleSequence } from './frameRate';
 import { FrameRateInput } from './FrameRateInput';
 import { defaultVideoBitrate, FRAME_RATE_HINT, type VideoBitrateMode } from './settings';
@@ -297,7 +298,7 @@ export default function VideoEditor(props: VideoEditorProps) {
   }
   function seek(value: number) {
     setPlaying(false);
-    setFrame(Math.max(0, Math.min(Math.max(0, total - 1), Math.round(value))));
+    setFrame(Math.max(0, Math.min(total, Math.round(value))));
   }
   useEffect(() => {
     let active = true;
@@ -362,7 +363,7 @@ export default function VideoEditor(props: VideoEditorProps) {
   }, [props.visible]);
   useEffect(() => {
     setSelectedIds((ids) => ids.filter((id) => sequence.clips.some((c) => c.id === id)));
-    setFrame((f) => Math.min(f, Math.max(0, total - 1)));
+    setFrame((f) => Math.min(f, total));
   }, [sequence, total]);
   useEffect(() => {
     if (!ready || !props.linkedGraphicId) return;
@@ -1192,6 +1193,65 @@ export default function VideoEditor(props: VideoEditorProps) {
       setExportProgress(null);
     }
   }
+  useEffect(() => {
+    if (!props.visible || viewMode !== 'timeline' || dialog) return;
+    const editable = (event: ClipboardEvent) => {
+      const target = event.target;
+      return (
+        target instanceof HTMLElement &&
+        (target.matches('input,textarea,select') || target.isContentEditable)
+      );
+    };
+    const copy = (event: ClipboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        editable(event) ||
+        editFocus.current !== 'timeline' ||
+        !selectedIds.length ||
+        !event.clipboardData
+      )
+        return;
+      try {
+        const snapshot = copyTimelineClips(project.id, sequence, selectedIds);
+        event.clipboardData.setData(TIMELINE_CLIPBOARD_MIME, snapshot);
+        event.clipboardData.setData('text/plain', snapshot);
+        event.preventDefault();
+        setMessage('已复制所选片段及关联音视频，可在播放头位置粘贴');
+      } catch (error) {
+        setMessage(errorMessage(error));
+      }
+    };
+    const paste = (event: ClipboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        editable(event) ||
+        editFocus.current !== 'timeline' ||
+        !event.clipboardData
+      )
+        return;
+      const text =
+        event.clipboardData.getData(TIMELINE_CLIPBOARD_MIME) ||
+        event.clipboardData.getData('text/plain');
+      try {
+        const pasted = pasteTimelineClips(project.id, sequence, project.assets, text, frame);
+        if (!pasted) return;
+        event.preventDefault();
+        if (edit(() => pasted.sequence)) {
+          setSelectedIds(pasted.selectedIds);
+          setMessage(`已在播放头插入 ${pasted.selectedIds.length} 个片段，后续内容同步后移`);
+        }
+      } catch (error) {
+        event.preventDefault();
+        setMessage(errorMessage(error));
+      }
+    };
+    window.addEventListener('copy', copy);
+    window.addEventListener('paste', paste);
+    return () => {
+      window.removeEventListener('copy', copy);
+      window.removeEventListener('paste', paste);
+    };
+  });
   useEffect(() => {
     if (!props.visible) return;
     const key = (e: KeyboardEvent) => {
