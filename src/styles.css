@@ -468,10 +468,10 @@ kbd {
 .layer-actions {
   display: flex;
   align-items: center;
-  padding: 7px 12px;
+  padding: 7px 8px;
   border-top: 1px solid var(--line);
   color: #8c9ab0;
-  gap: 8px;
+  gap: 4px;
 }
 .layer-actions > span {
   flex: 1;

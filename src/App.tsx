@@ -36,6 +36,8 @@ import {
   HelpCircle,
   FileSpreadsheet,
   Film,
+  ClipboardCopy,
+  ClipboardPaste,
 } from 'lucide-react';
 import type {
   Bounds,
@@ -70,6 +72,7 @@ import { NumberField, Properties } from './components/Properties';
 import { Conditions } from './components/Conditions';
 import { BatchPreview } from './components/BatchPreview';
 import { SiteCredits } from './components/SiteCredits';
+import { copyLayer, pasteLayer, LAYER_CLIPBOARD_MIME } from './core/layerClipboard';
 import type { GraphicSource } from './video/types';
 
 const VideoEditor = lazy(() => import('./video/VideoEditor'));
@@ -180,6 +183,7 @@ export default function App() {
     [exportMessage, setExportMessage] = useState(''),
     [archives, setArchives] = useState<Archive[]>([]);
   const docRef = useRef(doc);
+  const layerClipboard = useRef('');
   docRef.current = doc;
   const assets = useRef(new AssetStore()),
     history = useRef(new History()),
@@ -490,6 +494,39 @@ export default function App() {
     const created = d.Layers.find((l) => !doc.Layers.some((old) => old.Id === l.Id));
     replaceDocument(d, '复制图层');
     if (created) setSelected(created.Id);
+  }
+  function pasteCopiedLayer(text: string) {
+    try {
+      const pasted = pasteLayer(docRef.current, text, selected);
+      if (!pasted) return false;
+      replaceDocument(pasted.document, '粘贴图层');
+      setSelected(pasted.layerId);
+      setTab('properties');
+      return true;
+    } catch (error) {
+      notice(errorText(error));
+      return true;
+    }
+  }
+  async function copyToClipboard() {
+    if (!selected) return;
+    const snapshot = copyLayer(docRef.current, selected);
+    layerClipboard.current = snapshot;
+    try {
+      await navigator.clipboard.writeText(snapshot);
+      notice('图层已复制');
+    } catch {
+      notice('图层已复制，可在本页使用“粘贴图层”');
+    }
+  }
+  async function pasteFromClipboard() {
+    let text = layerClipboard.current;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      // Button fallback for browsers without clipboard permission; native shortcuts use events.
+    }
+    if (!pasteCopiedLayer(text)) notice('剪贴板中没有 TEditor 图层，请先复制图层');
   }
   function reorder(id: string, target: number) {
     const layers = docRef.current.Layers;
@@ -827,6 +864,34 @@ export default function App() {
     }
   }
   useEffect(() => {
+    const editingText = (target: EventTarget | null) =>
+      target instanceof HTMLElement &&
+      (target.matches('input,textarea,select') || target.isContentEditable);
+    const copy = (event: ClipboardEvent) => {
+      if (videoOpen || modal || editingText(event.target) || !selected || !event.clipboardData)
+        return;
+      const snapshot = copyLayer(docRef.current, selected);
+      event.clipboardData.setData(LAYER_CLIPBOARD_MIME, snapshot);
+      event.clipboardData.setData('text/plain', snapshot);
+      event.preventDefault();
+      layerClipboard.current = snapshot;
+      notice('图层已复制');
+    };
+    const paste = (event: ClipboardEvent) => {
+      if (videoOpen || modal || editingText(event.target) || !event.clipboardData) return;
+      const text =
+        event.clipboardData.getData(LAYER_CLIPBOARD_MIME) ||
+        event.clipboardData.getData('text/plain');
+      if (pasteCopiedLayer(text)) event.preventDefault();
+    };
+    window.addEventListener('copy', copy);
+    window.addEventListener('paste', paste);
+    return () => {
+      window.removeEventListener('copy', copy);
+      window.removeEventListener('paste', paste);
+    };
+  });
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (videoOpen) return;
       const target = e.target as HTMLElement;
@@ -1147,6 +1212,23 @@ export default function App() {
                 <ArrowDown size={15} />
               </button>
               <span />
+              <button
+                className="icon-button"
+                title="复制到剪贴板 (Ctrl/Cmd+C)"
+                aria-label="复制到剪贴板"
+                disabled={!selectedLayer}
+                onClick={() => void copyToClipboard()}
+              >
+                <ClipboardCopy size={15} />
+              </button>
+              <button
+                className="icon-button"
+                title="粘贴图层 (Ctrl/Cmd+V)"
+                aria-label="粘贴图层"
+                onClick={() => void pasteFromClipboard()}
+              >
+                <ClipboardPaste size={15} />
+              </button>
               <button
                 className="icon-button"
                 title="复制图层"
